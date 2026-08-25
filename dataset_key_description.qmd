@@ -1,0 +1,333 @@
+---
+title: "Speed Dating Dataset — Data Dictionary"
+subtitle: "Key/description reference for `Speed_Dating_Data.csv`"
+date: last-modified
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    number-sections: false
+    theme: cosmo
+    df-print: kable
+  # Uncomment to also render a PDF:
+  # pdf:
+  #   toc: true
+  #   geometry: [margin=1in]
+---
+
+## About this dataset
+
+This dictionary documents the **195 columns** of the Columbia speed-dating
+experiment. Each row of the data is **one directed encounter** — participant
+`iid` meeting partner `pid` for a four-minute date — so every date appears
+twice, once from each person's perspective, with mirrored fields
+(`dec` ↔ `dec_o`) and a shared `match`.
+
+## Reading the attribute-questionnaire columns
+
+Many columns follow the pattern **`<attribute><question>_<time>`**. Decode them
+by combining three pieces:
+
+**Attribute** — `attr` attractiveness, `sinc` sincerity, `intel` intelligence,
+`fun` fun, `amb` ambition, `shar` shared interests.
+
+**Question number** — what is being asked:
+
+| # | Question |
+|---|----------|
+| 1 | How much *you* value this attribute in a date (your stated preference) |
+| 2 | What you think the *opposite sex* values |
+| 3 | How you rate *yourself* (self-assessment) |
+| 4 | What you think your *same-sex peers* value |
+| 5 | How you think *others perceive* you |
+| 7 | Looking back, how much this attribute *actually drove* your decisions |
+
+**Time suffix** — when it was measured:
+
+| Suffix | When |
+|--------|------|
+| `_1` | Signup, before the event (Time 1) |
+| `_s` | Halfway through the event |
+| `_2` | The day after (Time 2 follow-up) |
+| `_3` | Weeks later (Time 3 follow-up) |
+
+So `attr1_1` = "how much you value attractiveness in a date, before the event";
+`attr3_1` = "how attractive you rated yourself, before the event";
+`attr7_2` = "how much attractiveness actually drove your yeses, reported after".
+
+**Scale note:** the preference-allocation blocks (question groups 1, 2, 4, 7)
+use a **100-point allocation** across the six attributes in most waves, but a
+**1–10 importance scale in waves 6–9** — normalize before using them. Self- and
+perception-ratings (groups 3, 5) are always 1–10.
+
+**Leakage note:** for a model that predicts *before* the date, use only pre-date
+fields (identifiers, signup profile, interests, and the `_1` preference/self
+blocks, plus `pf_o_*`, `age_o`, `race_o`, `int_corr`, `samerace`). Exclude the
+scorecard block, all `_o` event ratings, and the `_s`/`_2`/`_3` surveys.
+
+
+## Identifiers and structure
+
+Who the row is about, which wave/date it belongs to, and where/when the encounter happened. **One row = one directed encounter** (participant `iid` meeting partner `pid`); every date appears twice, once from each side.
+
+| Key | Description |
+|-----|-------------|
+| `iid` | Unique participant id across the whole study. |
+| `id` | Participant number within their wave. |
+| `gender` | Participant gender: 0 = female, 1 = male. |
+| `idg` | Participant number within gender (group of id and gender). |
+| `condtn` | Experimental condition: 1 = limited choice, 2 = extensive choice. |
+| `wave` | Wave (evening) number, 1–21; waves differ in date, preference scale and other variations. |
+| `round` | Number of people the participant met in that wave. |
+| `position` | Station number where the participant met this partner. |
+| `positin1` | Station number where the participant started the evening. |
+| `order` | Sequence number of this date within the night (1 = first date of the evening). |
+| `partner` | Partner's within-wave id number the night of the event. |
+| `pid` | Partner's unique id (join key to the partner's own iid). |
+
+## Outcome and pair-level fields
+
+The prediction target and two ready-made pair features. `match` is the mutual (reciprocal) label.
+
+| Key | Description |
+|-----|-------------|
+| `match` | Outcome label: 1 if both the participant and the partner said yes, else 0. |
+| `int_corr` | Correlation between the participant's and the partner's Time-1 interest ratings. |
+| `samerace` | 1 if participant and partner are the same race, else 0. |
+
+## Partner fields (the `_o` block)
+
+The partner's attributes and the partner's night-of-event decision/ratings *about the participant*, copied onto the row so each row is self-contained. Note: `dec_o`, `attr_o`…`prob_o`, `met_o` are generated **during** the date (label-adjacent / leakage for a before-the-date model); `age_o`, `race_o`, and `pf_o_*` are pre-date.
+
+| Key | Description |
+|-----|-------------|
+| `age_o` | Age of the partner. |
+| `race_o` | Race of the partner (see race coding). |
+| `pf_o_att` | Partner's stated Time-1 preference for attractiveness (partner's attr1_1). |
+| `pf_o_sin` | Partner's stated Time-1 preference for sincerity (partner's sinc1_1). |
+| `pf_o_int` | Partner's stated Time-1 preference for intelligence (partner's intel1_1). |
+| `pf_o_fun` | Partner's stated Time-1 preference for being fun (partner's fun1_1). |
+| `pf_o_amb` | Partner's stated Time-1 preference for ambition (partner's amb1_1). |
+| `pf_o_sha` | Partner's stated Time-1 preference for shared interests/hobbies (partner's shar1_1). |
+| `dec_o` | Partner's decision about the participant the night of the event (1 = yes, 0 = no). |
+| `attr_o` | Partner's rating of the participant on attractiveness during the date (1–10). |
+| `sinc_o` | Partner's rating of the participant on sincerity during the date (1–10). |
+| `intel_o` | Partner's rating of the participant on intelligence during the date (1–10). |
+| `fun_o` | Partner's rating of the participant on being fun during the date (1–10). |
+| `amb_o` | Partner's rating of the participant on ambition during the date (1–10). |
+| `shar_o` | Partner's rating of the participant on shared interests during the date (1–10). |
+| `like_o` | How much the partner liked the participant overall during the date (1–10). |
+| `prob_o` | Partner's estimated probability that the participant would say yes (1–10). |
+| `met_o` | Whether the partner had met the participant before. |
+
+## Signup profile (Time 1, pre-event)
+
+Demographics, background, goals and expectations from the registration survey — all known **before** the event.
+
+| Key | Description |
+|-----|-------------|
+| `age` | Participant's age. |
+| `field` | Participant's field of study (free text). |
+| `field_cd` | Participant's field of study, coded 1–18. |
+| `undergra` | Undergraduate institution the participant attended. |
+| `mn_sat` | Median SAT of the participant's undergraduate institution (intelligence proxy). |
+| `tuition` | Tuition of the participant's undergraduate institution. |
+| `race` | Participant race: 1 = Black, 2 = White, 3 = Latino, 4 = Asian, 5 = Native American, 6 = Other. |
+| `imprace` | How important a shared racial/ethnic background is to the participant (1–10). |
+| `imprelig` | How important a shared religious background is to the participant (1–10). |
+| `from` | Where the participant is originally from. |
+| `zipcode` | Zip code of the area where the participant grew up. |
+| `income` | Median household income for the participant's zip code (blank if abroad/not entered). |
+| `goal` | Primary goal for attending: 1 = fun night out, 2 = meet people, 3 = get a date, 4 = serious relationship, 5 = to say I did it, 6 = other. |
+| `date` | How frequently the participant goes on dates (1 = several/week … 7 = almost never). |
+| `go_out` | How often the participant goes out generally (1 = several/week … 7 = almost never). |
+| `career` | Participant's intended career (free text). |
+| `career_c` | Participant's intended career, coded 1–17. |
+| `exphappy` | How happy the participant expects to be with the people they meet (1–10). |
+| `expnum` | How many of the ~20 partners the participant expects to be interested in dating them. |
+
+## Interest ratings (Time 1, pre-event)
+
+Self-reported interest in 17 activities, each on a 1–10 scale. `int_corr` is the correlation of these between the two people in a pair.
+
+| Key | Description |
+|-----|-------------|
+| `sports` | Participant's interest in playing sports/athletics (1–10). |
+| `tvsports` | Participant's interest in watching sports (1–10). |
+| `exercise` | Participant's interest in body building/exercising (1–10). |
+| `dining` | Participant's interest in dining out (1–10). |
+| `museums` | Participant's interest in museums/galleries (1–10). |
+| `art` | Participant's interest in art (1–10). |
+| `hiking` | Participant's interest in hiking/camping (1–10). |
+| `gaming` | Participant's interest in gaming (1–10). |
+| `clubbing` | Participant's interest in dancing/clubbing (1–10). |
+| `reading` | Participant's interest in reading (1–10). |
+| `tv` | Participant's interest in watching TV (1–10). |
+| `theater` | Participant's interest in theater (1–10). |
+| `movies` | Participant's interest in movies (1–10). |
+| `concerts` | Participant's interest in going to concerts (1–10). |
+| `music` | Participant's interest in music (1–10). |
+| `shopping` | Participant's interest in shopping (1–10). |
+| `yoga` | Participant's interest in yoga/meditation (1–10). |
+
+## Stated preferences and self-ratings (Time 1, pre-event)
+
+The attribute questionnaire at signup. See the reading guide above for how the number and suffix combine.
+
+| Key | Description |
+|-----|-------------|
+| `attr1_1` | On attractiveness: the importance the participant personally places on attractiveness in a potential date; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc1_1` | On sincerity: the importance the participant personally places on sincerity in a potential date; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel1_1` | On intelligence: the importance the participant personally places on intelligence in a potential date; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun1_1` | On being fun: the importance the participant personally places on being fun in a potential date; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb1_1` | On ambition: the importance the participant personally places on ambition in a potential date; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar1_1` | On shared interests/hobbies: the importance the participant personally places on shared interests/hobbies in a potential date; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr4_1` | On attractiveness: the importance the participant thinks most of their fellow men/women place on attractiveness; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc4_1` | On sincerity: the importance the participant thinks most of their fellow men/women place on sincerity; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel4_1` | On intelligence: the importance the participant thinks most of their fellow men/women place on intelligence; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun4_1` | On being fun: the importance the participant thinks most of their fellow men/women place on being fun; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb4_1` | On ambition: the importance the participant thinks most of their fellow men/women place on ambition; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar4_1` | On shared interests/hobbies: the importance the participant thinks most of their fellow men/women place on shared interests/hobbies; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr2_1` | On attractiveness: the importance the participant thinks the opposite sex places on attractiveness; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc2_1` | On sincerity: the importance the participant thinks the opposite sex places on sincerity; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel2_1` | On intelligence: the importance the participant thinks the opposite sex places on intelligence; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun2_1` | On being fun: the importance the participant thinks the opposite sex places on being fun; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb2_1` | On ambition: the importance the participant thinks the opposite sex places on ambition; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar2_1` | On shared interests/hobbies: the importance the participant thinks the opposite sex places on shared interests/hobbies; measured at signup, before the event (Time 1). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr3_1` | On attractiveness: the participant's rating of their own attractiveness; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `sinc3_1` | On sincerity: the participant's rating of their own sincerity; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `fun3_1` | On being fun: the participant's rating of their own being fun; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `intel3_1` | On intelligence: the participant's rating of their own intelligence; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `amb3_1` | On ambition: the participant's rating of their own ambition; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `attr5_1` | On attractiveness: how the participant thinks others perceive their attractiveness; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `sinc5_1` | On sincerity: how the participant thinks others perceive their sincerity; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `intel5_1` | On intelligence: how the participant thinks others perceive their intelligence; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `fun5_1` | On being fun: how the participant thinks others perceive their being fun; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+| `amb5_1` | On ambition: how the participant thinks others perceive their ambition; measured at signup, before the event (Time 1). Scale: 1–10 scale. |
+
+## Scorecard (during the event)
+
+Filled out after each four-minute date. These are **during-event** signals — usable as/for the label but off-limits as pre-date inputs (`match_es` is an estimate given that night).
+
+| Key | Description |
+|-----|-------------|
+| `dec` | Participant's own decision about this partner the night of the event (1 = yes, 0 = no). |
+| `attr` | Participant's rating of this partner on attractiveness during the date (1–10). |
+| `sinc` | Participant's rating of this partner on sincerity during the date (1–10). |
+| `intel` | Participant's rating of this partner on intelligence during the date (1–10). |
+| `fun` | Participant's rating of this partner on being fun during the date (1–10). |
+| `amb` | Participant's rating of this partner on ambition during the date (1–10). |
+| `shar` | Participant's rating of this partner on shared interests during the date (1–10). |
+| `like` | How much the participant liked this partner overall during the date (1–10). |
+| `prob` | Participant's estimated probability that this partner would say yes (1–10). |
+| `met` | Whether the participant had met this partner before. |
+| `match_es` | How many matches the participant estimated they would get. |
+
+## Halfway survey (during the event, `_s`)
+
+Preference and self-rating questions re-asked midway through the evening.
+
+| Key | Description |
+|-----|-------------|
+| `attr1_s` | On attractiveness: the importance the participant personally places on attractiveness in a potential date; measured halfway through the event. Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc1_s` | On sincerity: the importance the participant personally places on sincerity in a potential date; measured halfway through the event. Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel1_s` | On intelligence: the importance the participant personally places on intelligence in a potential date; measured halfway through the event. Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun1_s` | On being fun: the importance the participant personally places on being fun in a potential date; measured halfway through the event. Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb1_s` | On ambition: the importance the participant personally places on ambition in a potential date; measured halfway through the event. Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar1_s` | On shared interests/hobbies: the importance the participant personally places on shared interests/hobbies in a potential date; measured halfway through the event. Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr3_s` | On attractiveness: the participant's rating of their own attractiveness; measured halfway through the event. Scale: 1–10 scale. |
+| `sinc3_s` | On sincerity: the participant's rating of their own sincerity; measured halfway through the event. Scale: 1–10 scale. |
+| `intel3_s` | On intelligence: the participant's rating of their own intelligence; measured halfway through the event. Scale: 1–10 scale. |
+| `fun3_s` | On being fun: the participant's rating of their own being fun; measured halfway through the event. Scale: 1–10 scale. |
+| `amb3_s` | On ambition: the participant's rating of their own ambition; measured halfway through the event. Scale: 1–10 scale. |
+
+## Follow-up — Time 2 (day after)
+
+Post-event reflections and the attribute questionnaire re-administered the day after; `you_call`/`them_cal` capture reported contact.
+
+| Key | Description |
+|-----|-------------|
+| `satis_2` | How satisfied the participant was overall with the people they met (1–10), day after. |
+| `length` | Whether four minutes per date felt: 1 = too little, 2 = too much, 3 = just right. |
+| `numdat_2` | Whether the number of dates felt: 1 = too few, 2 = too many, 3 = just right. |
+| `attr7_2` | On attractiveness: looking back, how important attractiveness actually was in the participant's yes/no decisions; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc7_2` | On sincerity: looking back, how important sincerity actually was in the participant's yes/no decisions; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel7_2` | On intelligence: looking back, how important intelligence actually was in the participant's yes/no decisions; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun7_2` | On being fun: looking back, how important being fun actually was in the participant's yes/no decisions; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb7_2` | On ambition: looking back, how important ambition actually was in the participant's yes/no decisions; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar7_2` | On shared interests/hobbies: looking back, how important shared interests/hobbies actually was in the participant's yes/no decisions; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr1_2` | On attractiveness: the importance the participant personally places on attractiveness in a potential date; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc1_2` | On sincerity: the importance the participant personally places on sincerity in a potential date; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel1_2` | On intelligence: the importance the participant personally places on intelligence in a potential date; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun1_2` | On being fun: the importance the participant personally places on being fun in a potential date; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb1_2` | On ambition: the importance the participant personally places on ambition in a potential date; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar1_2` | On shared interests/hobbies: the importance the participant personally places on shared interests/hobbies in a potential date; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr4_2` | On attractiveness: the importance the participant thinks most of their fellow men/women place on attractiveness; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc4_2` | On sincerity: the importance the participant thinks most of their fellow men/women place on sincerity; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel4_2` | On intelligence: the importance the participant thinks most of their fellow men/women place on intelligence; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun4_2` | On being fun: the importance the participant thinks most of their fellow men/women place on being fun; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb4_2` | On ambition: the importance the participant thinks most of their fellow men/women place on ambition; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar4_2` | On shared interests/hobbies: the importance the participant thinks most of their fellow men/women place on shared interests/hobbies; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr2_2` | On attractiveness: the importance the participant thinks the opposite sex places on attractiveness; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc2_2` | On sincerity: the importance the participant thinks the opposite sex places on sincerity; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel2_2` | On intelligence: the importance the participant thinks the opposite sex places on intelligence; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun2_2` | On being fun: the importance the participant thinks the opposite sex places on being fun; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb2_2` | On ambition: the importance the participant thinks the opposite sex places on ambition; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar2_2` | On shared interests/hobbies: the importance the participant thinks the opposite sex places on shared interests/hobbies; measured the day after the event (Time 2 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr3_2` | On attractiveness: the participant's rating of their own attractiveness; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `sinc3_2` | On sincerity: the participant's rating of their own sincerity; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `intel3_2` | On intelligence: the participant's rating of their own intelligence; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `fun3_2` | On being fun: the participant's rating of their own being fun; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `amb3_2` | On ambition: the participant's rating of their own ambition; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `attr5_2` | On attractiveness: how the participant thinks others perceive their attractiveness; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `sinc5_2` | On sincerity: how the participant thinks others perceive their sincerity; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `intel5_2` | On intelligence: how the participant thinks others perceive their intelligence; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `fun5_2` | On being fun: how the participant thinks others perceive their being fun; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `amb5_2` | On ambition: how the participant thinks others perceive their ambition; measured the day after the event (Time 2 follow-up). Scale: 1–10 scale. |
+| `you_call` | Number of partners the participant reported contacting after the event (Time 2). |
+| `them_cal` | Number of partners the participant reported were contacted by them (Time 2). |
+
+## Follow-up — Time 3 (weeks later)
+
+The final follow-up: whether matches led to real dates, plus the attribute questionnaire once more.
+
+| Key | Description |
+|-----|-------------|
+| `date_3` | Whether the participant had been on a date with any match by the Time-3 follow-up. |
+| `numdat_3` | Number of dates the participant went on with matches by Time 3. |
+| `num_in_3` | Number of matches the participant was still in contact with at Time 3. |
+| `attr1_3` | On attractiveness: the importance the participant personally places on attractiveness in a potential date; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc1_3` | On sincerity: the importance the participant personally places on sincerity in a potential date; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel1_3` | On intelligence: the importance the participant personally places on intelligence in a potential date; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun1_3` | On being fun: the importance the participant personally places on being fun in a potential date; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb1_3` | On ambition: the importance the participant personally places on ambition in a potential date; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar1_3` | On shared interests/hobbies: the importance the participant personally places on shared interests/hobbies in a potential date; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr7_3` | On attractiveness: looking back, how important attractiveness actually was in the participant's yes/no decisions; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc7_3` | On sincerity: looking back, how important sincerity actually was in the participant's yes/no decisions; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel7_3` | On intelligence: looking back, how important intelligence actually was in the participant's yes/no decisions; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun7_3` | On being fun: looking back, how important being fun actually was in the participant's yes/no decisions; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb7_3` | On ambition: looking back, how important ambition actually was in the participant's yes/no decisions; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar7_3` | On shared interests/hobbies: looking back, how important shared interests/hobbies actually was in the participant's yes/no decisions; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr4_3` | On attractiveness: the importance the participant thinks most of their fellow men/women place on attractiveness; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc4_3` | On sincerity: the importance the participant thinks most of their fellow men/women place on sincerity; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel4_3` | On intelligence: the importance the participant thinks most of their fellow men/women place on intelligence; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun4_3` | On being fun: the importance the participant thinks most of their fellow men/women place on being fun; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb4_3` | On ambition: the importance the participant thinks most of their fellow men/women place on ambition; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar4_3` | On shared interests/hobbies: the importance the participant thinks most of their fellow men/women place on shared interests/hobbies; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr2_3` | On attractiveness: the importance the participant thinks the opposite sex places on attractiveness; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `sinc2_3` | On sincerity: the importance the participant thinks the opposite sex places on sincerity; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `intel2_3` | On intelligence: the importance the participant thinks the opposite sex places on intelligence; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `fun2_3` | On being fun: the importance the participant thinks the opposite sex places on being fun; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `amb2_3` | On ambition: the importance the participant thinks the opposite sex places on ambition; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `shar2_3` | On shared interests/hobbies: the importance the participant thinks the opposite sex places on shared interests/hobbies; measured weeks later (Time 3 follow-up). Scale: 100-point allocation across the six attributes (1–10 importance scale in waves 6–9). |
+| `attr3_3` | On attractiveness: the participant's rating of their own attractiveness; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `sinc3_3` | On sincerity: the participant's rating of their own sincerity; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `intel3_3` | On intelligence: the participant's rating of their own intelligence; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `fun3_3` | On being fun: the participant's rating of their own being fun; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `amb3_3` | On ambition: the participant's rating of their own ambition; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `attr5_3` | On attractiveness: how the participant thinks others perceive their attractiveness; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `sinc5_3` | On sincerity: how the participant thinks others perceive their sincerity; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `intel5_3` | On intelligence: how the participant thinks others perceive their intelligence; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `fun5_3` | On being fun: how the participant thinks others perceive their being fun; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |
+| `amb5_3` | On ambition: how the participant thinks others perceive their ambition; measured weeks later (Time 3 follow-up). Scale: 1–10 scale. |

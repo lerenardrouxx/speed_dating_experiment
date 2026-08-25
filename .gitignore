@@ -1,0 +1,59 @@
+# ---- Virtual environment (285 MB, machine-specific absolute paths) ----
+.venv/
+venv/
+env/
+
+# ---- Quarto / Jupyter build artifacts & caches ----
+/.quarto/
+_freeze/
+.jupyter_cache/
+*_cache/
+*_files/
+.ipynb_checkpoints/
+
+# ---- Rendered output (regenerate with `quarto render`) ----
+# Remove these two lines if your submission requires the PDF in the repo.
+report.pdf
+dataset_key_description.html
+
+# ---- LaTeX intermediates ----
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Secrets ----
+.env
+.env.*
+*.key
+
+# ---- OS / editor cruft ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# ---- Large / temporary data ----
+# NOTE: Data/Speed_Dating_Data.csv (5 MB) is deliberately NOT ignored --
+# it is small enough to commit and keeps the report reproducible.
+*.parquet
+*.pkl
+*.joblib
+*.h5

@@ -1,0 +1,230 @@
+---
+title: "Reciprocal Recommendation for Speed Dating"
+subtitle: "Predicting mutual second-date decisions before the first date"
+author:
+  - name: "Barnard Alison"
+    affiliation: "HSLU"
+  - name: "Kohler Andrin"
+    affiliation: "HSLU"
+  - name: "Tabalae Petronela"
+    affiliation: "HSLU"
+  - name: "Sever Alin"
+    affiliation: "HSLU"
+date: last-modified
+abstract: |
+  One short paragraph (≈150 words). State the problem (recommend opposite-sex
+  pairings likely to *mutually* match), the constraint (predict before the date,
+  so only pre-date features are used), the baseline and improved method you
+  compare, the evaluation protocol in one line, and your headline result.
+format:
+  pdf:
+    documentclass: article
+    papersize: a4
+    fontsize: 11pt
+    geometry:
+      - margin=1in
+    number-sections: true
+    colorlinks: true
+    fig-pos: "H"
+    keep-tex: false
+    # Single-column is the article default. Keep TOC off to save space
+    # against the 10-page limit; turn on only if you have room.
+    toc: false
+bibliography: references.bib
+link-citations: true
+execute:
+  echo: false        # show results, not code, in the body (set true per-chunk to display code)
+  warning: false
+  message: false
+  cache: true
+jupyter: python3
+---
+
+<!--
+=======================================================================
+HOW TO USE THIS TEMPLATE
+- Report limit: max 10 pages, single-column. The learning reflection is a
+  SEPARATE ≤1-page document and does NOT count toward these 10 pages.
+- Grading weights are noted in each section header comment. Evaluation rigor
+  is the single largest block (25%), so give it the most page budget.
+- Delete every HTML comment block (the guidance notes) before submitting.
+=======================================================================
+-->
+
+
+# Introduction and problem framing {#sec-intro}
+
+<!-- RUBRIC: Problem framing and relevance = 10%.
+     Cover the MINIMUM REQUIREMENTS that belong here:
+     - Target user & application context (e.g. a speed-dating organizer who
+       wants to seat pairings that are likely to mutually match).
+     - Why this is a RECIPROCAL recommendation problem: the target `match`
+       is symmetric, so a good pairing must satisfy BOTH people's preferences.
+     - The key constraint: prediction happens BEFORE the date, so only
+       pre-date signals are admissible (this drives everything downstream).
+     - Your research question / what "success" means.
+     Keep to ~0.75–1 page. -->
+
+Motivate the task, define the target user, and state the reciprocal framing and
+the before-the-date constraint. Close with your concrete objective.
+
+# Data understanding {#sec-data}
+
+<!-- RUBRIC: Data understanding and reproducibility = 15%.
+     - Describe the dataset: the Columbia speed-dating experiment; 21 waves;
+       one row = one DIRECTED encounter (participant `iid` meeting partner `pid`).
+       Note that each date appears twice (A→B and B→A) and the mirroring
+       (A's `dec` == B's `dec_o`; shared `match`).
+     - Feedback type: implicit / binary decisions; `match` = mutual yes = the label.
+     - Feature groups you use (self, partner-via-join, pair/derived) and,
+       explicitly, the columns you EXCLUDE as leakage (scorecard ratings,
+       `dec`/`dec_o`, `like`, `prob`, all `_s`/`_2`/`_3` surveys).
+     - Data hygiene: the wave 6–9 scale difference (1–10 vs 100-point) and
+       how you normalized it; missingness handling for income/SAT/etc. -->
+
+```{python}
+#| label: load-data
+#| echo: true
+#| eval: false
+import pandas as pd
+
+df = pd.read_csv("Data/Speed_Dating_Data.csv", encoding="utf-8")
+
+# One row = one directed encounter (iid -> pid). Bring the partner's OWN
+# pre-date signup attributes onto each row via a self-join on pid -> iid.
+# self_cols = pre-date signup columns for the chooser
+# partner = df[["iid", *self_cols]].rename(columns={"iid": "pid", ...})
+# df = df.merge(partner, on="pid", how="left")
+
+# Normalize wave 6–9 preference blocks (1–10) vs 100-point allocation, then
+# drop leakage columns before modeling.
+```
+
+Summarize the data audit here. A small descriptive table helps
+(see @tbl-data-summary).
+
+```{python}
+#| label: tbl-data-summary
+#| tbl-cap: "Dataset summary: participants, encounters, and match rate."
+#| eval: false
+# Build and display a small summary table (rows, unique iids, waves, match rate).
+```
+
+## Feature set and leakage boundary {#sec-features}
+
+<!-- A short table listing PRE-DATE (usable) vs EXCLUDED (leakage) columns is
+     one of the highest-value things you can include for the 15% data score.
+     Keep it compact. -->
+
+State precisely which columns are inputs and which are excluded, and why.
+
+# Baseline {#sec-baseline}
+
+<!-- RUBRIC: Meaningful baseline = 15%.
+     Requirement: ONE simple baseline. Suggested: a desirability / popularity
+     ranking using a Wilson lower bound (so 4/4 does not outrank 40/50), or a
+     logistic regression on a few engineered pairwise features.
+     Report the baseline's numbers using the SAME protocol as your method. -->
+
+Describe the baseline, justify why it is a meaningful (non-trivial) reference,
+and report its results under the shared protocol in @sec-eval.
+
+# Method {#sec-method}
+
+<!-- RUBRIC: Method design and implementation = 20%.
+     Requirement: ONE improved method. Suggested: Factorization Machines over a
+     sparse pre-date feature vector (ids + side features), or a hybrid model.
+     - Explain the RECIPROCAL scoring: model each direction P(A→B), P(B→A) and
+       combine (e.g. product / harmonic mean) into a mutual score, OR justify
+       modeling `match` directly.
+     - Cover key design choices: features, regularization, negative sampling,
+       hyperparameters, how you selected them (and on what split). -->
+
+Present the model, the reciprocal scoring layer, and the training/tuning setup.
+Cite the methods you build on [@fisman2006gender].
+
+```{python}
+#| label: fit-method
+#| echo: true
+#| eval: false
+# Fit baseline and improved method on the training split.
+# Keep this reproducible: fixed seed, documented hyperparameters.
+```
+
+# Evaluation {#sec-eval}
+
+<!-- RUBRIC: Evaluation rigor = 25% (the largest block — give it the most space).
+     State the FULL protocol explicitly: split + relevance threshold +
+     candidate set + filtering rule.
+       - Split: by WAVE (not random) to avoid leakage.
+       - Relevance: `match == 1` (mutual yes).
+       - Candidate set: eligible opposite-sex partners within the wave.
+       - Filtering: any already-excluded / ineligible pairs.
+     Requirement: at least TWO relevance metrics + ONE beyond-accuracy metric.
+       - Relevance: Recall@K and NDCG@K (and/or MRR@K).
+       - Beyond-accuracy: coverage or novelty (coverage ties into the fairness
+         discussion in @sec-analysis).
+     Name the offline-evaluation risks you guarded against: leakage,
+     sampled-negative choice, logging/exposure bias, offline-vs-online gap. -->
+
+## Protocol {#sec-protocol}
+
+State split, relevance threshold, candidate set, and filtering rule in full.
+
+## Results {#sec-results}
+
+Present baseline vs. method across all metrics (see @tbl-results and
+@fig-results). Interpret, don't just tabulate.
+
+```{python}
+#| label: tbl-results
+#| tbl-cap: "Baseline vs. proposed method on held-out waves. Best per column in bold."
+#| eval: false
+# Assemble the results table: Recall@K, NDCG@K (or MRR@K), coverage, for each model.
+```
+
+```{python}
+#| label: fig-results
+#| fig-cap: "Metric comparison across K for baseline and proposed method."
+#| eval: false
+# Plot the comparison (e.g. Recall@K vs K).
+```
+
+# Analysis, limitations, and responsible use {#sec-analysis}
+
+<!-- RUBRIC: Analysis, limitations and responsible use = 10%.
+     - At least ONE honest limitation / risk / failure mode. Rich options here:
+       desirability (popularity) bias, race/`samerace` effects and fairness,
+       small non-representative sample (Columbia grad students, ~2002–2004),
+       cold-start for unseen participants, offline-vs-online gap.
+     - Where does the model fail, and for whom?
+     - Responsible use of AI (coding) tools: an honest account of which tools
+       you used, for what, and how you verified the output. This is REQUIRED. -->
+
+Discuss failure modes and fairness, then give the honest AI-tools disclosure.
+
+# Conclusion {#sec-conclusion}
+
+Two or three sentences: what you built, the headline finding, and one concrete
+next step.
+
+# Contribution statement {#sec-contrib}
+
+<!-- REQUIRED: state clearly what each group member contributed. -->
+
+- **Author One** — …
+- **Author Two** — …
+- **Author Three** — …
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
+
+<!--
+=======================================================================
+SEPARATE DELIVERABLE (do NOT include in this 10-page file):
+- Learning reflection, max 1 page. Create it as reflection.qmd / reflection.pdf.
+- Code submission or repository link.
+=======================================================================
+-->
