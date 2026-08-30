@@ -36,7 +36,7 @@ execute:
   echo: false        # show results, not code, in the body (set true per-chunk to display code)
   warning: false
   message: false
-  cache: true
+  cache: false
 jupyter: python3
 ---
 

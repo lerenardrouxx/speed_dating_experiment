@@ -1,0 +1,33 @@
+# Core data science
+numpy<2
+pandas
+scipy
+scikit-learn
+statsmodels
+pyarrow
+
+# Visualization
+matplotlib
+seaborn
+plotly
+
+# Jupyter
+jupyterlab
+ipykernel
+
+# Utilities
+tqdm
+requests
+python-dotenv
+joblib
+
+# Recommender systems
+scikit-surprise
+implicit
+torch
+
+# Development and testing
+pytest
+pytest-cov
+ruff
+mypy
