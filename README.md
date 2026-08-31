@@ -22,8 +22,8 @@ once, using only what is known at signup.
 |---|---|
 | `sd_features.py` | Feature-engineering module — the single source of truth. Notebook 02 narrates it; downstream notebooks import it |
 | `Data/Speed_Dating_Data.csv` | Raw dataset, 8,378 rows × 195 columns (Latin-1 encoded) |
-| `Data/features/speed_dating_features.csv` | **Generated** by notebook 02 — 8,368 directed encounters × 102 columns, deliberately unscaled |
-| `Data/features/feature_dictionary.csv` | **Generated** — every exported column with its definition, source, range and coverage |
+| `Data/features/speed_dating_features.csv` | Built by notebook 02 and **committed** — 8,368 directed encounters × 102 columns, deliberately unscaled. Load it directly; running notebook 02 is only needed to rebuild it |
+| `Data/features/feature_dictionary.csv` | Built by notebook 02 and **committed** — every exported column with its definition, source, range and coverage |
 | `dataset_key_description.qmd` | Column dictionary for all 195 raw columns, with the pre-date / leakage boundary |
 | `reciprocal_rs_slide.pptx` | Project proposal deck — fixes the baseline, the two methods, the protocol and the metrics |
 | `requirements.txt` | Python dependencies |

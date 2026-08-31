@@ -64,7 +64,10 @@ desktop.ini
 
 
 .vscode/
-Data/features/
+# Data/features/ IS committed: the professor inspects it and the modelling
+# notebooks load it, so nobody has to run notebook 02 first. The parquet copy
+# stays ignored by the *.parquet rule above -- it is a duplicate of the CSV.
 .ipynb_checkpoints/
 __pycache__/
 *.pyc
+

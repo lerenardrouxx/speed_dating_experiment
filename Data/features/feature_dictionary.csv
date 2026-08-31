@@ -1,0 +1,103 @@
+column,block,definition,source_columns,documented_range,nan_fraction,in_features_all
+iid,key,"Participant id, unique across the study",iid,-,0.0,False
+pid,key,Partner's iid for this date -- who they met,pid,-,0.0,False
+wave,key,Session 1-21; the unit the CV splits on,wave,1-21,0.0,False
+gender,key / feature,"0 = female, 1 = male (also a feature: the yes-rate gap is 10.9pp)",gender,0/1,0.0,True
+order,key / diagnostic,Position of this date in the night. Pre-date but a scheduling artefact (|r| = 0.03); excluded from FEATURES_ALL,order,1-22,0.0,False
+dec,label,This participant's yes/no about the partner -- the DIRECTIONAL training target,dec,0/1,0.0,False
+dec_o,label,"The partner's yes/no about this participant, i.e. the reverse direction's label. LABEL ONLY, never a feature",dec_o,0/1,0.0,False
+match,label,1 iff both said yes -- the symmetric relevance label,match,0/1,0.0,False
+age,profile,Age in years,age,18-55,0.0112,True
+imprace,profile,How important a shared racial background is (1-10),imprace,1-10,0.0094,True
+imprelig,profile,How important a shared religious background is (1-10),imprelig,1-10,0.0094,True
+exphappy,profile,How happy they expect to be with the people they meet (1-10),exphappy,1-10,0.0121,True
+go_out,profile,How often they go out generally (1 = several/week ... 7 = almost never),go_out,1-7,0.0094,True
+date,profile,"How often they go on dates, same reverse coding",date,1-7,0.0116,True
+age_p,profile,Partner's value -- age in years,age joined on pid,18-55,0.0112,True
+imprace_p,profile,Partner's value -- how important a shared racial background is (1-10),imprace joined on pid,1-10,0.0094,True
+imprelig_p,profile,Partner's value -- how important a shared religious background is (1-10),imprelig joined on pid,1-10,0.0094,True
+exphappy_p,profile,Partner's value -- how happy they expect to be with the people they meet (1-10),exphappy joined on pid,1-10,0.0121,True
+go_out_p,profile,Partner's value -- how often they go out generally (1 = several/week ... 7 = almost never),go_out joined on pid,1-7,0.0094,True
+date_p,profile,"Partner's value -- how often they go on dates, same reverse coding",date joined on pid,1-7,0.0116,True
+race,profile,"Race code 1-6 (categorical -- one-hot, never scaled)",race,1-6,0.0075,True
+field_cd,profile,"Field of study, coded 1-18 (categorical)",field_cd,1-18,0.0098,True
+career_c,profile,"Intended career, coded 1-17 (categorical)",career_c,1-17,0.0165,True
+goal,profile,"Reason for attending, coded 1-6 (categorical)",goal,1-6,0.0094,True
+race_p,profile,"Partner's value -- race code 1-6 (categorical -- one-hot, never scaled)",race joined on pid,1-6,0.0075,True
+field_cd_p,profile,"Partner's value -- field of study, coded 1-18 (categorical)",field_cd joined on pid,1-18,0.0098,True
+career_c_p,profile,"Partner's value -- intended career, coded 1-17 (categorical)",career_c joined on pid,1-17,0.0165,True
+goal_p,profile,"Partner's value -- reason for attending, coded 1-6 (categorical)",goal joined on pid,1-6,0.0094,True
+pref_attr,stated preference,Share of the 100-point allocation this person gave to attractiveness at signup; the six shares sum to 1,attr1_1,0-1,0.0142,True
+pref_sinc,stated preference,Share of the 100-point allocation this person gave to sincerity at signup; the six shares sum to 1,sinc1_1,0-1,0.0142,True
+pref_intel,stated preference,Share of the 100-point allocation this person gave to intelligence at signup; the six shares sum to 1,intel1_1,0-1,0.0142,True
+pref_fun,stated preference,Share of the 100-point allocation this person gave to being fun at signup; the six shares sum to 1,fun1_1,0-1,0.0142,True
+pref_amb,stated preference,Share of the 100-point allocation this person gave to ambition at signup; the six shares sum to 1,amb1_1,0-1,0.0142,True
+pref_shar,stated preference,Share of the 100-point allocation this person gave to shared interests at signup; the six shares sum to 1,shar1_1,0-1,0.0142,True
+pref_attr_p,stated preference,Partner's value -- share of the 100-point allocation this person gave to attractiveness at signup; the six shares sum to 1,attr1_1 joined on pid,0-1,0.0142,True
+pref_sinc_p,stated preference,Partner's value -- share of the 100-point allocation this person gave to sincerity at signup; the six shares sum to 1,sinc1_1 joined on pid,0-1,0.0142,True
+pref_intel_p,stated preference,Partner's value -- share of the 100-point allocation this person gave to intelligence at signup; the six shares sum to 1,intel1_1 joined on pid,0-1,0.0142,True
+pref_fun_p,stated preference,Partner's value -- share of the 100-point allocation this person gave to being fun at signup; the six shares sum to 1,fun1_1 joined on pid,0-1,0.0142,True
+pref_amb_p,stated preference,Partner's value -- share of the 100-point allocation this person gave to ambition at signup; the six shares sum to 1,amb1_1 joined on pid,0-1,0.0142,True
+pref_shar_p,stated preference,Partner's value -- share of the 100-point allocation this person gave to shared interests at signup; the six shares sum to 1,shar1_1 joined on pid,0-1,0.0142,True
+selfrate_attr,self-rating,How this person rates their own attractiveness at signup. The pre-date stand-in for the in-date attribute ratings,attr3_1,1-10,0.0125,True
+selfrate_sinc,self-rating,How this person rates their own sincerity at signup. The pre-date stand-in for the in-date attribute ratings,sinc3_1,1-10,0.0125,True
+selfrate_intel,self-rating,How this person rates their own intelligence at signup. The pre-date stand-in for the in-date attribute ratings,intel3_1,1-10,0.0125,True
+selfrate_fun,self-rating,How this person rates their own being fun at signup. The pre-date stand-in for the in-date attribute ratings,fun3_1,1-10,0.0125,True
+selfrate_amb,self-rating,How this person rates their own ambition at signup. The pre-date stand-in for the in-date attribute ratings,amb3_1,1-10,0.0125,True
+selfrate_attr_p,self-rating,Partner's value -- how this person rates their own attractiveness at signup. The pre-date stand-in for the in-date attribute ratings,attr3_1 joined on pid,1-10,0.0125,True
+selfrate_sinc_p,self-rating,Partner's value -- how this person rates their own sincerity at signup. The pre-date stand-in for the in-date attribute ratings,sinc3_1 joined on pid,1-10,0.0125,True
+selfrate_intel_p,self-rating,Partner's value -- how this person rates their own intelligence at signup. The pre-date stand-in for the in-date attribute ratings,intel3_1 joined on pid,1-10,0.0125,True
+selfrate_fun_p,self-rating,Partner's value -- how this person rates their own being fun at signup. The pre-date stand-in for the in-date attribute ratings,fun3_1 joined on pid,1-10,0.0125,True
+selfrate_amb_p,self-rating,Partner's value -- how this person rates their own ambition at signup. The pre-date stand-in for the in-date attribute ratings,amb3_1 joined on pid,1-10,0.0125,True
+sports,interest,Self-reported interest in the activity at signup: sports,sports,1-10,0.0094,True
+tvsports,interest,Self-reported interest in the activity at signup: tvsports,tvsports,1-10,0.0094,True
+exercise,interest,Self-reported interest in the activity at signup: exercise,exercise,1-10,0.0094,True
+dining,interest,Self-reported interest in the activity at signup: dining,dining,1-10,0.0094,True
+museums,interest,Self-reported interest in the activity at signup: museums,museums,1-10,0.0094,True
+art,interest,Self-reported interest in the activity at signup: art,art,1-10,0.0094,True
+hiking,interest,Self-reported interest in the activity at signup: hiking,hiking,1-10,0.0094,True
+gaming,interest,Self-reported interest in the activity at signup: gaming,gaming,1-10,0.0094,True
+clubbing,interest,Self-reported interest in the activity at signup: clubbing,clubbing,1-10,0.0094,True
+reading,interest,Self-reported interest in the activity at signup: reading,reading,1-10,0.0094,True
+tv,interest,Self-reported interest in the activity at signup: tv,tv,1-10,0.0094,True
+theater,interest,Self-reported interest in the activity at signup: theater,theater,1-10,0.0094,True
+movies,interest,Self-reported interest in the activity at signup: movies,movies,1-10,0.0094,True
+concerts,interest,Self-reported interest in the activity at signup: concerts,concerts,1-10,0.0094,True
+music,interest,Self-reported interest in the activity at signup: music,music,1-10,0.0094,True
+shopping,interest,Self-reported interest in the activity at signup: shopping,shopping,1-10,0.0094,True
+yoga,interest,Self-reported interest in the activity at signup: yoga,yoga,1-10,0.0094,True
+sports_p,interest,Partner's value -- self-reported interest in the activity at signup: sports,sports joined on pid,1-10,0.0094,True
+tvsports_p,interest,Partner's value -- self-reported interest in the activity at signup: tvsports,tvsports joined on pid,1-10,0.0094,True
+exercise_p,interest,Partner's value -- self-reported interest in the activity at signup: exercise,exercise joined on pid,1-10,0.0094,True
+dining_p,interest,Partner's value -- self-reported interest in the activity at signup: dining,dining joined on pid,1-10,0.0094,True
+museums_p,interest,Partner's value -- self-reported interest in the activity at signup: museums,museums joined on pid,1-10,0.0094,True
+art_p,interest,Partner's value -- self-reported interest in the activity at signup: art,art joined on pid,1-10,0.0094,True
+hiking_p,interest,Partner's value -- self-reported interest in the activity at signup: hiking,hiking joined on pid,1-10,0.0094,True
+gaming_p,interest,Partner's value -- self-reported interest in the activity at signup: gaming,gaming joined on pid,1-10,0.0094,True
+clubbing_p,interest,Partner's value -- self-reported interest in the activity at signup: clubbing,clubbing joined on pid,1-10,0.0094,True
+reading_p,interest,Partner's value -- self-reported interest in the activity at signup: reading,reading joined on pid,1-10,0.0094,True
+tv_p,interest,Partner's value -- self-reported interest in the activity at signup: tv,tv joined on pid,1-10,0.0094,True
+theater_p,interest,Partner's value -- self-reported interest in the activity at signup: theater,theater joined on pid,1-10,0.0094,True
+movies_p,interest,Partner's value -- self-reported interest in the activity at signup: movies,movies joined on pid,1-10,0.0094,True
+concerts_p,interest,Partner's value -- self-reported interest in the activity at signup: concerts,concerts joined on pid,1-10,0.0094,True
+music_p,interest,Partner's value -- self-reported interest in the activity at signup: music,music joined on pid,1-10,0.0094,True
+shopping_p,interest,Partner's value -- self-reported interest in the activity at signup: shopping,shopping joined on pid,1-10,0.0094,True
+yoga_p,interest,Partner's value -- self-reported interest in the activity at signup: yoga,yoga joined on pid,1-10,0.0094,True
+age_diff,dyadic,Absolute age difference,"age, age_p",0+,0.0225,True
+age_gap,dyadic,Signed age difference (decider minus partner),"age, age_p",+/-,0.0225,True
+samerace,dyadic,1 if both are the same race,samerace,0/1,0.0,True
+race_importance,dyadic,imprace x samerace: same-race matters only to people who say it does. No religion analogue exists (no religion identity column in the file),"imprace, samerace",0-10,0.0094,True
+same_field,dyadic,"1 if both study the same field, NaN if either is missing","field_cd, field_cd_p",0/1,0.0196,True
+same_goal,dyadic,1 if both attend for the same reason,"goal, goal_p",0/1,0.0189,True
+same_career,dyadic,1 if both intend the same career,"career_c, career_c_p",0/1,0.0327,True
+go_out_diff,dyadic,"Going-out frequency mismatch (the scale is reverse-coded: 1 = several times a week, 7 = almost never)","go_out, go_out_p",0-6,0.0189,True
+date_diff,dyadic,"Dating frequency mismatch, same reverse coding","date, date_p",0-6,0.0232,True
+int_corr,dyadic,Precomputed interest correlation for the pair (ships with the file),int_corr,-1 to 1,0.0189,True
+int_sim_pearson,dyadic,"Pearson correlation over the 17 interests, recomputed by us. Close to int_corr but NOT identical (r ~ 0.92)","17 interests, both sides",-1 to 1,0.0189,True
+int_sim_cosine,dyadic,Cosine similarity over the 17 interests,"17 interests, both sides",-1 to 1,0.0189,True
+compat_a2b,compatibility,"My stated weights (5 attributes, renormalised) dotted with the partner's SELF-ratings. Pre-date on both sides","pref_*, selfrate_*_p",1-10,0.0268,True
+compat_b2a,compatibility,The partner's stated weights dotted with my self-ratings -- the reciprocal direction,"pref_*_p, selfrate_*",1-10,0.0268,True
+compat_harmonic,compatibility,Harmonic mean of the two directions: a ready-made symmetric reciprocal score,"compat_a2b, compat_b2a",1-10,0.0347,True
+compat_gap_l1,compatibility,L1 distance between my weight vector and the partner's self-rating profile as shares -- the 'distance' form of the same idea,"pref_*, selfrate_*_p",0-2,0.0268,True
+shar_x_intcorr,compatibility,"My shared-interest weight x int_corr. The sixth stated weight has no self-rating to meet (there is no shar3_1), so it pairs with the interest proxy","pref_shar, int_corr",-1 to 1,0.0237,True
+shar_x_intcorr_p,compatibility,The partner's shared-interest weight x int_corr,"pref_shar_p, int_corr",-1 to 1,0.0237,True
