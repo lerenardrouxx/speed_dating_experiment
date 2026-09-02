@@ -10,6 +10,9 @@ _freeze/
 *_cache/
 *_files/
 .ipynb_checkpoints/
+*.txt
+# ...but the dependency list must ship: both notebooks tell the reader to install from it.
+!requirements.txt
 
 # ---- Rendered output (regenerate with `quarto render`) ----
 # Remove these two lines if your submission requires the PDF in the repo.
@@ -57,3 +60,14 @@ desktop.ini
 *.pkl
 *.joblib
 *.h5
+
+
+
+.vscode/
+# Data/features/ IS committed: the professor inspects it and the modelling
+# notebooks load it, so nobody has to run notebook 02 first. The parquet copy
+# stays ignored by the *.parquet rule above -- it is a duplicate of the CSV.
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
