@@ -290,12 +290,14 @@ reduces the baseline to a random shuffle. We therefore adopt **predicted desirab
 trained on the training waves that predicts a participant's acceptance rate from their signup
 profile alone, then applied to unseen participants. This preserves what a popularity baseline is
 meant to be — global, non-personalised, independent of who is choosing — while remaining computable
-for a cold start. The training-side desirability the model is fitted against is a *shrunk*
-acceptance rate, not a raw one: each participant's rate is pulled toward the training mean with
-$m = 20$ pseudo-counts, the interior optimum of split-half reliability (0.545 raw, 0.608 shrunk,
-EDA §13.3). A third of participants have 10 dates or fewer, where one flipped decision moves the
-raw rate by 10 percentage points, so a participant accepted by 4 of 4 partners is scored 0.52
-rather than 1.00 and does not outrank one accepted by 40 of 50 (0.69).
+for a cold start. The training-side desirability the model is fitted against is not a raw
+acceptance rate but a **Wilson lower bound** on it: the acceptance rate we can be confident a
+participant is achieving *at least*, given how many dates that estimate rests on. The interval
+shrinks a rate toward 0.5 when it comes from few observations and barely moves it when it comes
+from many, so a participant accepted by 4 of 4 partners is scored 0.51 rather than 1.00, while one
+accepted by 40 of 50 is scored 0.67 rather than 0.80 -- much closer to its raw value, since 50
+dates is enough evidence to largely trust it. This is what keeps a small, lucky sample from
+outranking a larger, more reliable one.
 
 <!-- PLACEHOLDER: baseline results. Report the same metrics and the same 21-fold protocol as
      @sec-eval, with mean and standard deviation across folds. -->
