@@ -432,9 +432,10 @@ def add_behavioural_features(train_df: pd.DataFrame, apply_df: pd.DataFrame,
 
     The function survives for two jobs that do need it:
 
-    * the training-side ``desirability`` target for the re-specified popularity baseline Z
-      ("predicted desirability from profile features", EDA 15.1);
-    * a deliberately-labelled optimistic within-fold reference.
+    * a deliberately-labelled optimistic within-fold reference;
+    * NOTE: this is NOT the baseline's official target -- report.qmd specifies a Wilson
+      lower bound for that (EDA 15.1). See :func:`wilson_desirability` below, which is
+      what the baseline model actually uses.
 
     Note it takes **raw** date rows, not the feature table: ``avg_attr_received`` and
     ``avg_like_received`` come from ``attr_o``/``like_o``, columns the feature table excludes as
@@ -468,6 +469,42 @@ def add_behavioural_features(train_df: pd.DataFrame, apply_df: pd.DataFrame,
     out["behav_cold_start"] = ~out["iid"].isin(seen)
     out["behav_cold_start_p"] = ~out["pid"].isin(seen)
     return out
+
+def wilson_desirability(train_df: pd.DataFrame, apply_df: pd.DataFrame,
+                        z: float = 1.96) -> pd.DataFrame:
+    """Wilson lower-bound desirability -- the ACTUAL baseline target (sec-baseline).
+
+    report.qmd states the popularity baseline uses "a Wilson lower bound" so that a
+    participant accepted 4/4 times does not outrank one accepted 40/50 times. This is
+    that formula, applied directly, rather than the additive/Bayesian shrinkage in
+    :func:`add_behavioural_features` above -- which solves the same qualitative problem
+    (distrust small samples) with a different formula (blend toward the training-wide
+    average, weighted by an m=20 pseudo-count), not the one the report describes.
+
+    Call this the way you call :func:`add_behavioural_features`: fit on training-wave
+    rows only, apply to any rows (train or held-out). Every held-out participant gets
+    the cold-start fallback (prior = 0.5, since a 0/0 Wilson interval is undefined) --
+    see the module-level cold-start note in :func:`add_behavioural_features`.
+    """
+    out = apply_df.copy()
+    sub = train_df.loc[train_df["pid"].notna(), ["iid", "dec_o"]].dropna()
+    agg = sub.groupby("iid")["dec_o"].agg(["sum", "count"]).astype("float64")
+
+    n = agg["count"]
+    phat = agg["sum"] / n
+    denom = 1.0 + z**2 / n
+    center = phat + z**2 / (2 * n)
+    margin = z * np.sqrt((phat * (1 - phat) + z**2 / (4 * n)) / n)
+    wilson = (center - margin) / denom
+
+    out["desirability_wilson"] = out["iid"].map(wilson).fillna(0.5)
+    out["desirability_wilson_p"] = out["pid"].map(wilson).fillna(0.5)
+
+    seen = set(train_df["iid"].unique())
+    out["behav_cold_start"] = ~out["iid"].isin(seen)
+    out["behav_cold_start_p"] = ~out["pid"].isin(seen)
+    return out
+
 
 
 # --------------------------------------------------------------------------------------------
