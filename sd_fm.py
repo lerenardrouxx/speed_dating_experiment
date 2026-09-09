@@ -189,7 +189,7 @@ def combine_harmonic(p_ab: np.ndarray, p_ba: np.ndarray) -> np.ndarray:
 # 3. Hyperparameter search -- ONE split, reused for all 21 outer folds
 # --------------------------------------------------------------------------------------------
 
-DEFAULT_GRID = {"k": [4, 8, 16], "l2": [1e-4, 1e-3, 1e-2], "lr": [0.01, 0.05]}
+DEFAULT_GRID = {"k": [4, 8, 16], "l2": [0.001, 0.01, 0.02, 0.05], "lr": [0.01, 0.05]}
 
 
 def select_hyperparams(feat: pd.DataFrame, tuning_wave: int = 1, n_val_waves: int = 4,
