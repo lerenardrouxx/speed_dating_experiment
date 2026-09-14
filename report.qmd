@@ -307,6 +307,8 @@ shared protocol of @sec-protocol.
 
 # Method {#sec-method}
 
+## Factorization Machine {#sec-factorization-machine}
+
 <!-- RUBRIC: Method design and implementation = 20%.
      Requirement: ONE improved method. Suggested: Factorization Machines over a
      sparse pre-date feature vector (ids + side features), or a hybrid model.
@@ -316,16 +318,64 @@ shared protocol of @sec-protocol.
      - Cover key design choices: features, regularization, negative sampling,
        hyperparameters, how you selected them (and on what split). -->
 
-Present the model, the reciprocal scoring layer, and the training/tuning setup.
-Cite the methods you build on [@fisman2006gender].
+Our improved method is a second-order **factorization machine** (FM), a model that combines a
+linear predictor with learned pairwise feature interactions [@rendle2010factorization]. We train it
+on the directional decision `dec`: for a directed encounter $A \rightarrow B$, the target is one if
+participant $A$ would like to meet participant $B$ again. The input contains the full pre-date
+feature representation described in @sec-features. After fold-specific imputation, scaling and
+one-hot encoding, the 95 declared features form a 181-dimensional design matrix. Participant
+identifiers are used only to join the two directions of an encounter and never enter the model;
+this is necessary because every held-out participant is a complete cold start. No negative
+sampling is applied, since every eligible encounter in a wave was observed and has a decision
+label.
 
-```{python}
-#| label: fit-method
-#| echo: true
-#| eval: false
-# Fit baseline and improved method on the training split.
-# Keep this reproducible: fixed seed, documented hyperparameters.
-```
+For a feature vector $\mathbf{x}\in\mathbb{R}^{d}$, the FM predicts the directional logit
+
+$$
+\hat y(\mathbf{x}) = w_0 + \sum_{i=1}^{d}w_i x_i
++ \sum_{i=1}^{d}\sum_{j=i+1}^{d}\langle\mathbf{v}_i,\mathbf{v}_j\rangle x_i x_j,
+$$
+
+where $w_0$ is the global bias, $w_i$ are linear coefficients, and
+$\mathbf{v}_i\in\mathbb{R}^{k}$ is the latent vector associated with feature $i$. The inner product
+$\langle\mathbf{v}_i,\mathbf{v}_j\rangle$ parameterises an interaction without estimating a
+separate coefficient for every feature pair. The implementation in `sd_fm.py` evaluates this term
+with the standard linear-time reformulation rather than explicitly enumerating all pairs. Setting
+$k=0$ removes the interaction term and yields a linear logistic model through the same code path.
+
+The model is fitted in PyTorch by minimizing binary cross-entropy with logits plus an explicit
+$L_2$ penalty on the linear and latent weights,
+$\mathcal{L}=\operatorname{BCE}+\lambda(\lVert\mathbf{w}\rVert_2^2+
+\lVert\mathbf{V}\rVert_F^2)$. We use full-batch Adam, a fixed random seed of 42, and early stopping
+on validation log-loss with a patience of 20 epochs. For each outer held-out wave, the
+preprocessor and FM weights are refitted using only the other waves; the held-out wave is
+transformed with that fold's fitted preprocessor.
+
+Reciprocity is introduced after directional prediction. The fitted model produces
+$p_{A\rightarrow B}$ and $p_{B\rightarrow A}$ from the two mirrored rows, which are combined into
+the symmetric reciprocal score
+
+$$
+s(A,B)=\frac{2p_{A\rightarrow B}p_{B\rightarrow A}}
+{p_{A\rightarrow B}+p_{B\rightarrow A}}.
+$$
+
+The harmonic mean assigns a high score only when both directional predictions are high and gives
+the pair the same score from either participant's perspective. We use it as a ranking score rather
+than interpreting it as a calibrated probability of a mutual match. The symmetric `match` label is
+therefore reserved for evaluating the resulting candidate rankings and is not used to train the
+directional model.
+
+Hyperparameters were selected once using a grouped validation split for computational efficiency.
+Wave 1 was excluded from tuning; from the remaining 20 waves, four seeded waves formed the inner
+validation set and the rest the inner training set. The search considered
+$k\in\{4,8,16\}$, $\lambda\in\{0.001,0.01,0.02,0.05\}$ and learning rates in
+$\{0.01,0.05\}$. Configurations were compared by validation log-loss, while early stopping supplied
+the epoch budget. The selected configuration ($k=16$, $\lambda=0.05$, learning rate $0.05$, 40
+epochs) was then reused for every outer fit. Because waves used during tuning also appear in the
+outer evaluation, this is a non-nested cross-validation design and its performance estimate may be
+mildly optimistic; a fully nested search was not used because of its substantially greater
+computational cost.
 
 # Evaluation {#sec-eval}
 
