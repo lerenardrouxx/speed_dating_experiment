@@ -1,33 +1,19 @@
+# Python 3.11.9 -- pinned to the environment all notebooks are executed in
+
 # Core data science
-numpy<2
-pandas
-scipy
-scikit-learn
-statsmodels
-pyarrow
+numpy==1.26.4
+pandas==3.0.5
+scipy==1.17.1
+scikit-learn==1.9.0
+pyarrow==25.0.1
 
 # Visualization
-matplotlib
-seaborn
-plotly
+matplotlib==3.11.1
+
+# Factorization machine (sd_fm.py)
+torch==2.13.0
 
 # Jupyter
-jupyterlab
-ipykernel
-
-# Utilities
-tqdm
-requests
-python-dotenv
-joblib
-
-# Recommender systems
-scikit-surprise
-implicit
-torch
-
-# Development and testing
-pytest
-pytest-cov
-ruff
-mypy
+jupyterlab==4.6.3
+ipykernel==7.3.0
+nbconvert==7.17.1
