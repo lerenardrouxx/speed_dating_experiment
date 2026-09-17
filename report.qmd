@@ -569,13 +569,16 @@ and every metric in @sec-results should be read as an estimate over this specifi
 
 ## Responsible use of AI tools
 
-<!-- ALISON: write this section yourself, in your own words. It's a required, graded part of
-     the rubric and should describe your own actual workflow: e.g. what you used AI for
-     (debugging the environment, drafting the shared-evaluator adapter and comparison
-     notebook/figure, drafting sections of this report) and how you checked the output before
-     trusting it (e.g. confirming the notebook executed with zero errors, cross-checking the
-     numbers against build_comparison.py's own printed output, reviewing and editing the
-     drafted prose). Replace this comment with your own paragraph before submitting. -->
+We used Claude (Anthropic's AI assistant) as a working tool throughout this part of the
+project, but the underlying work is ours: we extended our shared evaluator (`evaluation.py`)
+with the additional metrics and significance tests, decided which methods and evaluation
+choices belonged in the final comparison, and built the pipeline that runs all three methods
+through that shared evaluator. We used Claude for debugging the environment, for help writing
+the adapter and notebook code around that pipeline, and for assisting with drafting and editing
+text for several report sections. Throughout, we directed the work through iterative prompting
+rather than accepting output as-is, verified the code by confirming it ran correctly and
+matched expected results, and reviewed and edited all drafted text ourselves before including
+it here.
 
 # Conclusion {#sec-conclusion}
 
