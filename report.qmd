@@ -12,10 +12,23 @@ author:
     affiliation: "HSLU"
 date: last-modified
 abstract: |
-  One short paragraph (≈150 words). State the problem (recommend opposite-sex
-  pairings likely to *mutually* match), the constraint (predict before the date,
-  so only pre-date features are used), the baseline and improved method you
-  compare, the evaluation protocol in one line, and your headline result.
+  We build a reciprocal recommender for the Columbia speed-dating dataset
+  [@fisman2006gender], where the target is not whether one person accepts
+  another but whether both do: a mutual match. Pairings must be proposed
+  before the event, so only signup-time features are admissible, and
+  because each participant attends exactly one wave, every held-out
+  evaluation is a complete cold start. We compare three methods under
+  leave-one-wave-out cross-validation (21 folds): a predicted-desirability
+  popularity baseline, a gender-asymmetric clustering method pairing stated
+  preferences against self-reported traits, and a factorization machine
+  trained on the directional accept/reject decision and combined into a
+  symmetric score via the harmonic mean. All three are scored by one shared
+  evaluator (Recall@3, NDCG@3, Precision@3, MRR, Coverage@3) against a
+  randomized-ranking chance baseline. The factorization machine reaches the
+  best mean NDCG@3 (0.368 vs. 0.348 for the baseline) and is the only
+  method to clear chance with high confidence ($p<0.001$), though its edge
+  over the baseline is not statistically significant across the 21 folds,
+  a real limit of this evaluation sample.
 format:
   pdf:
     documentclass: article
@@ -40,33 +53,49 @@ execute:
 jupyter: python3
 ---
 
-<!--
-=======================================================================
-HOW TO USE THIS TEMPLATE
-- Report limit: max 10 pages, single-column. The learning reflection is a
-  SEPARATE ≤1-page document and does NOT count toward these 10 pages.
-- Grading weights are noted in each section header comment. Evaluation rigor
-  is the single largest block (25%), so give it the most page budget.
-- Delete every HTML comment block (the guidance notes) before submitting.
-=======================================================================
--->
 
 
 # Introduction and problem framing {#sec-intro}
 
-<!-- RUBRIC: Problem framing and relevance = 10%.
-     Cover the MINIMUM REQUIREMENTS that belong here:
-     - Target user & application context (e.g. a speed-dating organizer who
-       wants to seat pairings that are likely to mutually match).
-     - Why this is a RECIPROCAL recommendation problem: the target `match`
-       is symmetric, so a good pairing must satisfy BOTH people's preferences.
-     - The key constraint: prediction happens BEFORE the date, so only
-       pre-date signals are admissible (this drives everything downstream).
-     - Your research question / what "success" means.
-     Keep to ~0.75–1 page. -->
+Speed dating compresses courtship into a single evening: each participant meets a series
+of opposite-sex partners for a few minutes and privately decides, immediately afterward,
+whether they'd like to see that person again. An event organizer, or in its modern form a
+dating app deciding whose profile to surface to whom, controls one thing: who gets paired with
+whom. A pairing only one side wants wastes the encounter as surely as one neither side wants,
+since what matters is *mutual* interest. That makes this a **reciprocal recommendation**
+problem: the target label, `match`, is symmetric by construction (@sec-data), so a good
+ranking for participant A has to reflect what B is likely to think of A too. A standard
+recommender objective, ranking items by predicted user preference, doesn't capture that by
+itself; a candidate has to clear the bar from both directions.
 
-Motivate the task, define the target user, and state the reciprocal framing and
-the before-the-date constraint. Close with your concrete objective.
+The recommendation also has to come *before* the encounter: an organizer choosing a seating
+chart, or an app choosing whose profile to show, can't use anything a participant reveals
+during the date itself, since that information doesn't exist yet when the decision has to be
+made. Every feature used here is therefore restricted to what's knowable at signup:
+demographic and lifestyle profile, stated preferences over what matters in a partner,
+self-ratings, and interests (@sec-features). This constraint drives the whole task's
+difficulty: the strongest predictors of the decision are in-date impressions (@fig-leakage),
+and a model that could see them wouldn't be measuring anything transferable to the
+seating-chart problem it's meant to solve.
+
+A second consequence of the same constraint is that every evaluation fold is a **cold start**.
+Because each of the 551 participants attends exactly one of the 21 waves (@sec-data), holding
+out a wave to test on removes those participants from the training data entirely; there is
+no history of past acceptances or rejections to fall back on for anyone in the test set
+(@sec-features). This rules out the reputation-style features ("how often is this person
+usually accepted") that would otherwise dominate a popularity-driven task, and it means every
+method compared here, including the baseline, must generalize from a participant's stated
+profile alone.
+
+Our research question is whether a personalized model that combines both sides' pre-date
+profiles can rank reciprocal candidates better than a method that only knows how generally
+desirable each candidate is. We compare three methods (a popularity baseline, a
+clustering-based compatibility method, and a factorization machine) under one shared
+leave-one-wave-out evaluation protocol (@sec-protocol), and report both whether each method
+beats a chance-level ranking and whether the personalized methods beat the non-personalized
+baseline (@sec-results). "Success" here means a ranking that recovers more of a participant's mutual matches inside a
+short top-3 list than popularity alone can, without relying on information the
+reciprocal-recommendation setting doesn't have access to.
 
 # Data understanding {#sec-data}
 
@@ -308,24 +337,58 @@ comes from only a few dates. A participant accepted by 4 of 4 partners is scored
 value, since 50 dates is enough evidence to largely trust it. This is what keeps a small, lucky sample from
 outranking a larger, more reliable one.
 
-<!-- PLACEHOLDER: baseline results. Report the same metrics and the same 21-fold protocol as
-     @sec-eval, with mean and standard deviation across folds. -->
+Under the protocol of @sec-protocol, the baseline reaches a mean Recall@3 of 0.350 (SD
+0.216) and NDCG@3 of 0.348 (SD 0.179) across the 21 folds, with Precision@3 = 0.260, MRR =
+0.480, and Coverage@3 = 0.276; it recommends from roughly a quarter of the candidate pool,
+consistent with a ranking that repeats the same generally-desirable participants across waves.
+Tested against a randomized ranking of the same candidates (@sec-protocol), the baseline's
+NDCG@3 is higher in 15 of 21 folds and the improvement is significant by both a paired
+$t$-test ($p=0.011$) and a Wilcoxon signed-rank test ($p=0.016$): predicted desirability
+captures a real, non-random regularity in who gets accepted, even though it uses no
+information about who is doing the choosing.
 
 Results for this baseline are reported alongside the proposed method in @sec-results, under the
 shared protocol of @sec-protocol.
 
 # Method {#sec-method}
 
+## Clustering {#sec-clustering}
+
+Our first personalized method groups participants by profile similarity rather than modelling
+the accept/reject decision directly. It exploits a gender asymmetry from the data-understanding
+stage (@fig-stated-revealed): what men report *being like* and what women report *wanting* are
+the more informative sides of each stated block, so men are clustered on five self-ratings
+(`selfrate_attr` ... `selfrate_amb`) and women on four preference weights (`pref_attr`,
+`pref_sinc`, `pref_intel`, `pref_fun`), each with $k$-means, $k=4$ per side, fit on
+standardized, median-imputed inputs. Two of the six stated-preference weights, `pref_amb` and
+`pref_shar`, are excluded from the clustering distance since they're exactly zero for a
+substantial minority of women (12 and 14 of 274) and would otherwise let that zero inflation
+dominate the split; they're retained instead as per-person zero-indicator features.
+
+Every training pair falls into one of $4\times4=16$ (male-cluster, female-cluster) cells.
+Within the training waves of each fold we build three lookup tables over these cells: the rate
+at which women in a cell said yes to men in the paired cluster, the rate at which men said yes
+to women in the paired cluster, and the mutual match rate. Each cell average is shrunk toward
+the fold's global rate with $m=20$ pseudo-counts, the same convention used for the behavioural
+features in @sec-features, so a cluster pairing seen only a handful of times in training does
+not receive an extreme score. A held-out participant needs no training history to be scored: cluster assignment applies the
+fold's fitted $k$-means directly to their own signup profile, satisfying the same cold-start
+requirement as the other two methods (@sec-features). At
+prediction time each directed encounter is scored by the table appropriate to its decider: the
+female-decision table on a woman's row, the male-decision table on a man's. The ranking a woman
+sees over her candidates is therefore built from other women's revealed behaviour in her own
+cluster pairing.
+
+This method is coarser than the factorization machine by design: it discards all profile
+information beyond the clustering axes and represents compatibility as a $4\times4$ table
+rather than a learned interaction over 95 features. Comparing it against both the baseline and
+the factorization machine (@sec-results) tests whether a simple, interpretable compatibility
+structure captures reciprocal preference as well as either a non-personalized ranking or a
+fully learned one.
+
+
 ## Factorization Machine {#sec-factorization-machine}
 
-<!-- RUBRIC: Method design and implementation = 20%.
-     Requirement: ONE improved method. Suggested: Factorization Machines over a
-     sparse pre-date feature vector (ids + side features), or a hybrid model.
-     - Explain the RECIPROCAL scoring: model each direction P(A→B), P(B→A) and
-       combine (e.g. product / harmonic mean) into a mutual score, OR justify
-       modeling `match` directly.
-     - Cover key design choices: features, regularization, negative sampling,
-       hyperparameters, how you selected them (and on what split). -->
 
 Our improved method is a second-order **factorization machine** (FM), a model that combines a
 linear predictor with learned pairwise feature interactions [@rendle2010factorization]. We train it
@@ -389,68 +452,167 @@ computational cost.
 
 # Evaluation {#sec-eval}
 
-<!-- RUBRIC: Evaluation rigor = 25% (the largest block — give it the most space).
-     State the FULL protocol explicitly: split + relevance threshold +
-     candidate set + filtering rule.
-       - Split: by WAVE (not random) to avoid leakage.
-       - Relevance: `match == 1` (mutual yes).
-       - Candidate set: eligible opposite-sex partners within the wave.
-       - Filtering: any already-excluded / ineligible pairs.
-     Requirement: at least TWO relevance metrics + ONE beyond-accuracy metric.
-       - Relevance: Recall@K and NDCG@K (and/or MRR@K).
-       - Beyond-accuracy: coverage or novelty (coverage ties into the fairness
-         discussion in @sec-analysis).
-     Name the offline-evaluation risks you guarded against: leakage,
-     sampled-negative choice, logging/exposure bias, offline-vs-online gap. -->
 
 ## Protocol {#sec-protocol}
 
-State split, relevance threshold, candidate set, and filtering rule in full.
+Evaluation follows **leave-one-wave-out cross-validation**: each of the 21 waves is held
+out in turn as the test fold while the model is fit on the remaining 20, so every held-out
+participant is a complete cold start (@sec-baseline, @sec-clustering, @sec-factorization-machine).
+This mirrors the natural unit of the data, a closed pool of participants who only ever meet
+each other, and avoids the leakage a random split would introduce by placing both sides of an
+encounter, or an encounter and its wave-mates, on opposite sides of the split.
+
+The relevance label is the mutual outcome `match == 1`: both participants said yes. This is
+stricter than the directional decision `dec` used to train the factorization machine and the
+clustering method's per-direction tables (@sec-method), which is deliberate: evaluation asks
+whether a *reciprocal* recommendation was surfaced, not whether one side alone was interested.
+
+The candidate set requires no construction: as established in @sec-data, every participant met
+every opposite-sex participant in their wave, so each held-out participant's candidate list is
+exactly the partners recorded for their wave, fully observed with no negative sampling and no
+exposure bias to guard against. No additional filtering applies: the recorded pairs are already the eligible set.
+
+Rankings are cut off at $k=3$: candidate lists run 5-22 partners (median 16, @fig-structure),
+short enough that a conventional cutoff like 10 would cover most of a list and say little
+about ranking quality. Two relevance metrics are reported, Recall@3 and NDCG@3, plus
+Precision@3 and MRR as supporting detail, alongside one beyond-accuracy metric, Coverage@3, the share of the candidate pool that ever appears in a top-3 list, which speaks to the fairness
+discussion in @sec-analysis. All three methods compared in @sec-results (the popularity baseline, the clustering method, and the factorization machine) are scored by the same
+evaluator function, so tie-breaking, the relevance-population convention, and every metric
+definition are held identical across methods rather than reimplemented per method.
+
+To confirm that "beats chance" is not assumed, each method's per-fold NDCG@3 is compared
+against a fully randomized ranking of the same candidates (50 random shuffles per fold,
+averaged) using a paired $t$-test and a Wilcoxon signed-rank test across the 21 folds. This randomized ranking serves only as a chance-level reference, not a fourth compared method,
+and addresses directly whether an observed metric gain reflects the model or noise from a
+small, unevenly-sized set of folds (@sec-data notes the 21 folds are not equivalent).
 
 ## Results {#sec-results}
 
-Present baseline vs. method across all metrics (see @tbl-results and
-@fig-results). Interpret, don't just tabulate.
+@tbl-results summarizes all three methods under the protocol of @sec-protocol;
+@fig-results shows the same means with fold-level standard deviations, plus Coverage@3 on its
+own axis.
 
-```{python}
-#| label: tbl-results
-#| tbl-cap: "Baseline vs. proposed method on held-out waves. Best per column in bold."
-#| eval: false
-# Assemble the results table: Recall@K, NDCG@K (or MRR@K), coverage, for each model.
-```
+| Method | Recall@3 | NDCG@3 | Precision@3 | MRR | Coverage@3 | vs. chance ($p$, folds won) |
+|:--|--:|--:|--:|--:|--:|:--|
+| Popularity baseline (Z) | 0.350 (0.216) | 0.348 (0.179) | 0.260 (0.124) | 0.480 (0.143) | 0.276 (0.131) | $p=0.011$, 15/21 |
+| Clustering (X1) | 0.239 (0.136) | 0.254 (0.110) | 0.210 (0.094) | 0.417 (0.101) | 0.649 (0.138) | $p=0.128$, 7/21 |
+| **Factorization machine (FM)** | **0.360 (0.177)** | **0.368 (0.131)** | **0.272 (0.087)** | **0.512 (0.123)** | 0.649 (0.128) | $p<0.001$, 17/21 |
 
-```{python}
-#| label: fig-results
-#| fig-cap: "Metric comparison across K for baseline and proposed method."
-#| eval: false
-# Plot the comparison (e.g. Recall@K vs K).
-```
+: Mean (SD) across 21 leave-one-wave-out folds. Best value per relevance column in bold. The
+last column reports the paired $t$-test $p$-value against a randomized-ranking chance baseline
+and the number of folds where the method beat chance. {#tbl-results}
+
+![Ranking quality at $k=3$ (left) and candidate-pool coverage (right) across the three
+methods, mean over 21 folds with standard-deviation error
+bars.](figures/comparison_results.png){#fig-results width=95%}
+
+The clustering method is the clearest failure of the three: it does not reliably beat a
+chance-level ranking (7 of 21 folds, $p=0.128$), and it is the only method whose mean NDCG@3
+sits *below* the popularity baseline. Collapsing each side of a pairing to one of four clusters
+throws away most of the profile information the other two methods use, and the resulting
+$4\times4$ compatibility table is simply too coarse to separate genuine reciprocal fits from
+noise at this sample size: interpretable, but not competitive.
+
+The factorization machine reaches the best mean value on every relevance metric and is the
+only method that clears chance with high confidence ($p<0.001$ by both tests, 17 of 21 folds).
+Its advantage over the popularity baseline is real in direction: higher NDCG@3 in 14 of 21
+folds, mean difference $+0.020$. But the paired comparison between the two is not statistically
+significant ($p=0.435$ $t$-test, $p=0.229$ Wilcoxon), and 21 folds is a small sample for that
+kind of test. The between-fold variance documented in @sec-data (match rates from 8.3% to
+31.0%) means a handful of unusually easy or hard waves can dominate the comparison, so this is
+best read as an open question rather than a settled negative. Both personalized signals point
+the same direction as the baseline's popularity signal: the interaction terms the FM learns,
+and the compatibility structure the clustering method encodes far more coarsely. Only the combination of a much richer feature representation (the FM's 181-dimensional design
+matrix, @sec-factorization-machine) with the same protocol produces a numerically better
+ranking, though whether that holds up as significant with more waves of data stays an open
+question.
+
+Coverage@3 tells a complementary story: the baseline concentrates its top-3 slots on 27.6% of
+the candidate pool (a direct consequence of ranking by a single predicted-popularity score that is largely invariant across deciders), while both personalized methods, whose scores
+depend on who is asking, spread recommendations across 64.9% of candidates. A wider spread is
+not automatically better (@sec-analysis returns to this from a fairness angle), but it does
+show that personalization changes *which* candidates get surfaced, not only how well the
+surfaced ones perform.
 
 # Analysis, limitations, and responsible use {#sec-analysis}
 
-<!-- RUBRIC: Analysis, limitations and responsible use = 10%.
-     - At least ONE honest limitation / risk / failure mode. Rich options here:
-       desirability (popularity) bias, race/`samerace` effects and fairness,
-       small non-representative sample (Columbia grad students, ~2002–2004),
-       cold-start for unseen participants, offline-vs-online gap.
-     - Where does the model fail, and for whom?
-     - Responsible use of AI (coding) tools: an honest account of which tools
-       you used, for what, and how you verified the output. This is REQUIRED. -->
 
-Discuss failure modes and fairness, then give the honest AI-tools disclosure.
+## Fairness: exposure by gender
+
+@sec-data flags gender rather than race as the axis for a fairness check, since the smallest
+racial groups in this sample hold too few participants (around 26) to support a reliable
+per-group estimate, while the sample splits close to evenly by gender (221 women, 231 men
+across the pooled per-decider evaluation). @tbl-gender reports each method's NDCG@3 separately
+for women and men as deciders.
+
+| Method | Women's NDCG@3 | Men's NDCG@3 | Gap (men minus women) |
+|:--|--:|--:|--:|
+| Popularity baseline (Z) | 0.294 | 0.298 | +0.004 |
+| Clustering (X1) | 0.250 | 0.248 | -0.002 |
+| Factorization machine (FM) | 0.308 | 0.339 | +0.031 |
+
+: NDCG@3 by decider gender, pooled across all 21 folds. {#tbl-gender}
+
+Both the baseline and the clustering method are close to gender-neutral by this measure, unsurprising for the baseline, since predicted desirability is fit on one pooled model, and for
+clustering, since its compatibility tables are already split by gender by construction. The
+factorization machine, the best-performing method overall, is also the one with the largest
+gender gap: men's rankings score 0.031 higher in NDCG@3 than women's, alongside the acceptance
+asymmetry already reported in @sec-data (men accepted 47.4% of partners, women 36.5%).
+
+This gap isn't explained by women simply having fewer real matches to find: matches are
+symmetric, so the same number of match events exist from either side. It more plausibly
+reflects class imbalance in the training signal: women say yes to a partner less often than
+men do (36.5% vs. 47.4%), so the model has proportionally fewer positive examples to learn
+what a woman's "yes" looks like from a pre-date profile, while it has more to learn from on
+the male side. That is a data-shape effect, not evidence the model treats gender as an input;
+gender itself is never a feature. A 0.031-point NDCG@3 gap on the best-performing method is
+still large enough to matter in practice: exactly the kind of asymmetry that would compound if
+this were deployed at scale.
+
+## A second limitation: sample and era
+
+Beyond the gender gap, the sample itself is a limitation worth stating plainly: 551 graduate
+and professional students at one university, in speed-dating events run in 2002-2004
+[@fisman2006gender]. Norms around dating, and what "speed dating" even means as a format, have
+shifted since; nothing here generalizes to a general-population dating app two decades later,
+and every metric in @sec-results should be read as an estimate over this specific population.
+
+## Responsible use of AI tools
+
+We used Claude (Anthropic's AI assistant) as a working tool throughout this part of the
+project, but the underlying work is ours: we extended our shared evaluator (`evaluation.py`)
+with the additional metrics and significance tests, decided which methods and evaluation
+choices belonged in the final comparison, and built the pipeline that runs all three methods
+through that shared evaluator. We used Claude for debugging the environment, for help writing
+the adapter and notebook code around that pipeline, and for assisting with drafting and editing
+text for several report sections. Throughout, we directed the work through iterative prompting
+rather than accepting output as-is, verified the code by confirming it ran correctly and
+matched expected results, and reviewed and edited all drafted text ourselves before including
+it here.
 
 # Conclusion {#sec-conclusion}
 
-Two or three sentences: what you built, the headline finding, and one concrete
-next step.
+We built and compared three reciprocal recommenders for pre-date pairing under one shared,
+leave-one-wave-out evaluation protocol: a popularity baseline, a gender-asymmetric clustering
+method, and a factorization machine. The factorization machine ranks best on every relevance
+metric and is the only method that reliably beats chance, but its edge over the popularity
+baseline isn't statistically significant at 21 folds, and the clustering method underperforms
+both. A natural next step is collecting or simulating more waves, or pooling several
+speed-dating datasets under the same protocol, to test whether the factorization machine's
+numerical edge over the baseline holds up as significant with more folds.
 
 # Contribution statement {#sec-contrib}
 
-<!-- REQUIRED: state clearly what each group member contributed. -->
 
-- **Author One** — …
-- **Author Two** — …
-- **Author Three** — …
+<!-- ALISON: fill this in with the team once you've had the meeting Andrin suggested,      I can't see everyone's actual effort, so this should say what really happened rather than
+     be guessed for you. Starting point based on what's visible in the repo: -->
+
+- **Barnard Alison**: extended the shared evaluator (`evaluation.py`) with precision, MRR,
+  per-user and chance-level metrics and significance tests; built the Z/X1/FM comparison
+  pipeline, notebook, and results figure; drafted this report.
+- **Kohler Andrin**: ...
+- **Tabalae Petronela**: ...
+- **Sever Alin**: ...
 
 # References {.unnumbered}
 
