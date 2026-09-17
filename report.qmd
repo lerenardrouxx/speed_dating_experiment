@@ -62,7 +62,7 @@ of opposite-sex partners for a few minutes and privately decides, immediately af
 whether they'd like to see that person again. An event organizer, or in its modern form a
 dating app deciding whose profile to surface to whom, controls one thing: who gets paired with
 whom. A pairing only one side wants wastes the encounter as surely as one neither side wants,
-since what matters is *mutual* interest. That makes this a **reciprocal recommendation**
+since what matters is *mutual* interest. That makes this a reciprocal recommendation
 problem: the target label, `match`, is symmetric by construction (@sec-data), so a good
 ranking for participant A has to reflect what B is likely to think of A too. A standard
 recommender objective, ranking items by predicted user preference, doesn't capture that by
@@ -78,7 +78,7 @@ difficulty: the strongest predictors of the decision are in-date impressions (@f
 and a model that could see them wouldn't be measuring anything transferable to the
 seating-chart problem it's meant to solve.
 
-A second consequence of the same constraint is that every evaluation fold is a **cold start**.
+A second consequence of the same constraint is that every evaluation fold is a cold start.
 Because each of the 551 participants attends exactly one of the 21 waves (@sec-data), holding
 out a wave to test on removes those participants from the training data entirely; there is
 no history of past acceptances or rejections to fall back on for anyone in the test set
@@ -99,8 +99,8 @@ reciprocal-recommendation setting doesn't have access to.
 
 # Data understanding {#sec-data}
 
-*Measurements below are tagged with where they can be reproduced: **EDA §n** means section n of the
-exploratory notebook, **FE §n** section n of the feature-engineering notebook; both are named in the
+*Measurements below are tagged with where they can be reproduced: EDA §n means section n of the
+exploratory notebook, FE §n section n of the feature-engineering notebook; both are named in the
 reproducibility note that closes this section.*
 
 ## The dataset and the unit of observation
@@ -110,7 +110,7 @@ between 2002 and 2004. Within a wave every participant met each opposite-sex par
 four-minute date and then privately recorded whether they would like to see that person again. The
 published file holds 8,378 rows over 195 columns and describes 551 participants (EDA §2).
 
-One row is a **directed encounter** — participant `iid` meeting partner `pid`, recorded from `iid`'s
+One row is a directed encounter — participant `iid` meeting partner `pid`, recorded from `iid`'s
 point of view — so every meeting appears twice, once from each side. We verified this mirror
 structure rather than assuming it: for all 8,368 rows carrying a partner identifier the mirrored row
 is present, the partner's own decision equals the `dec_o` field stored on our row on 100% of rows,
@@ -128,7 +128,7 @@ makes the wave a clean unit for cross-validation (@sec-protocol).
 
 : The dataset at a glance; values from EDA §3–§6 and FE §4. {#tbl-data-summary}
 
-Feedback is **implicit and binary**, and we retain both readings of it: the directional `dec`
+Feedback is implicit and binary, and we retain both readings of it: the directional `dec`
 records one person's decision and is the natural training target, while the symmetric `match`, true
 only when both parties accept, is the relevance label for ranking. Matches are far rarer than
 acceptances — 16.5% against 42.0% — so the positive class is small and accuracy would be a
@@ -145,8 +145,8 @@ participant, which is exactly their candidate-set size. Both panels: EDA §4 and
 width=94%}
 
 The candidate set needs no construction and no negative sampling, which is unusual for an offline
-recommender evaluation: **every one of the 551 participants met every opposite-sex participant
-present in their wave** (verified in FE §4). Each candidate list is therefore fully observed, its
+recommender evaluation: every one of the 551 participants met every opposite-sex participant
+present in their wave (verified in FE §4). Each candidate list is therefore fully observed, its
 length being the number of partners met — 5 to 22, median 16 (@fig-structure). Because the lists are
 short, a cut-off at rank 10 would cover most of a list, which is why the evaluation reports metrics
 at rank 3 (@sec-protocol).
@@ -199,8 +199,8 @@ share. This affects 101 of 541 participants and 4 of the 21 folds (EDA §12.1).
 
 All analysis code lives in the repository rather than in this report:
 
-- `01_Speed_Dating_EDA.ipynb` — the exploratory analysis, cited above as **EDA §n**;
-- `02_Speed_Dating_Feature_Engineering.ipynb` — the feature construction, cited as **FE §n**. It
+- `01_Speed_Dating_EDA.ipynb` — the exploratory analysis, cited above as EDA §n;
+- `02_Speed_Dating_Feature_Engineering.ipynb` — the feature construction, cited as FE §n. It
   narrates and verifies `sd_features.py`, the module holding the feature logic, so that the
   modelling and evaluation steps import one definition rather than reimplementing it;
 - `03_Baseline_Desirability_Model.ipynb` — the popularity baseline of @sec-baseline
@@ -247,8 +247,8 @@ task is not a weakened version of the in-date task but a substantially harder on
 against published figures that use in-date ratings would be misleading.
 
 A second consequence is stronger. Because participants attend exactly one wave, holding out a wave
-removes those people entirely: across all 21 folds, **zero of 551 held-out participants and zero of
-their partners have any training history** (EDA §15, per fold in FE §11). Every
+removes those people entirely: across all 21 folds, zero of 551 held-out participants and zero of
+their partners have any training history (EDA §15, per fold in FE §11). Every
 fold is a complete cold start. Reputation features — how often a person accepts, how often they are
 accepted — are the strongest pre-date signals available ($|r| \approx 0.40$ and $0.36$ estimated
 leave-one-out, EDA §13.3), yet under this protocol they collapse to a constant on every test row,
@@ -278,7 +278,7 @@ dictionary. {#tbl-features}
 The compatibility block carries the reciprocal idea. The natural formulation — the distance between
 one person's stated preferences and the attribute ratings their partner received — is unavailable
 here, since those ratings are in-date and, for a cold-start partner, absent from training
-altogether. We substitute the partner's **self-ratings**, collected at signup and present for 98.4%
+altogether. We substitute the partner's self-ratings, collected at signup and present for 98.4%
 of participants across all 21 waves, and score each direction separately: `compat_a2b` applies the
 decider's preference weights to the partner's self-rated attributes, `compat_b2a` is the mirror
 image, and `compat_harmonic` is their harmonic mean, a single symmetric score (EDA §15.4,
@@ -389,7 +389,7 @@ fully learned one.
 ## Factorization Machine {#sec-factorization-machine}
 
 
-Our improved method is a second-order **factorization machine** (FM), a model that combines a
+Our improved method is a second-order factorization machine (FM), a model that combines a
 linear predictor with learned pairwise feature interactions [@rendle2010factorization]. We train it
 on the directional decision `dec`: for a directed encounter $A \rightarrow B$, the target is one if
 participant $A$ would like to meet participant $B$ again. The input contains the full pre-date
@@ -607,12 +607,12 @@ numerical edge over the baseline holds up as significant with more folds.
 <!-- ALISON: fill this in with the team once you've had the meeting Andrin suggested,      I can't see everyone's actual effort, so this should say what really happened rather than
      be guessed for you. Starting point based on what's visible in the repo: -->
 
-- **Barnard Alison**: extended the shared evaluator (`evaluation.py`) with precision, MRR,
+- Barnard Alison: extended the shared evaluator (`evaluation.py`) with precision, MRR,
   per-user and chance-level metrics and significance tests; built the Z/X1/FM comparison
   pipeline, notebook, and results figure; drafted this report.
-- **Kohler Andrin**: ...
-- **Tabalae Petronela**: ...
-- **Sever Alin**: ...
+- Kohler Andrin: ...
+- Tabalae Petronela: ...
+- Sever Alin: ...
 
 # References {.unnumbered}
 
