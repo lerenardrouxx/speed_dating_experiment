@@ -297,8 +297,8 @@ cross-validation loop (FE §12; ranges audited in EDA §14).
 
 The baseline is a **popularity ranking**: candidates are ordered by desirability, the rate at which
 they are accepted, ignoring who is choosing. It is a meaningful rather than a trivial reference
-precisely because attention is concentrated — a size-free Gini of 0.323, the top decile absorbing
-22.8% of acceptances (EDA §9) — so a ranker that merely learns who is popular already captures a
+precisely because attention is concentrated: a size-free Gini of 0.323, with the top decile absorbing
+22.8% of acceptances (EDA §9), so a ranker that merely learns who is popular already captures a
 real regularity that a personalised method must beat.
 
 The exploratory analysis established that it cannot be computed as usually worded (EDA §15.1):
@@ -309,11 +309,11 @@ optimistic, transductive upper bound, while scoring all candidates identically i
 reduces the baseline to a random shuffle. We therefore adopt **predicted desirability**: a model
 trained on the training waves that predicts a participant's acceptance rate from their signup
 profile alone, then applied to unseen participants. This preserves what a popularity baseline is
-meant to be — global, non-personalised, independent of who is choosing — while remaining computable
+meant to be, global, non-personalised, and independent of who is choosing, while remaining computable
 for a cold start. The training-side desirability the model is fitted against is not a raw
 acceptance rate but a **Wilson lower bound** on it [@wilson1927probable]: the acceptance rate we can
 be confident a participant is achieving *at least*, given how many dates that estimate rests on. The
-bound is deliberately pessimistic: it pulls every rate down, and pulls it further when the rate
+bound is deliberately pessimistic, pulling every rate down and pulling it further when the rate
 comes from only a few dates. A participant accepted by 4 of 4 partners is scored 0.51 rather than
 1.00, while one accepted by 40 of 50 is scored 0.67 rather than 0.80 — much closer to its raw
 value, since 50 dates is enough evidence to largely trust it. This is what keeps a small, lucky sample from
@@ -325,7 +325,7 @@ Under the protocol of @sec-protocol, the baseline reaches a mean Recall@3 of 0.3
 consistent with a ranking that repeats the same generally-desirable participants across waves.
 Tested against a randomized ranking of the same candidates (@sec-protocol), the baseline's
 NDCG@3 is higher in 15 of 21 folds and the improvement is significant by both a paired
-$t$-test ($p=0.011$) and a Wilcoxon signed-rank test ($p=0.016$): predicted desirability
+$t$-test ($p=0.011$) and a Wilcoxon signed-rank test ($p=0.016$), showing that predicted desirability
 captures a real, non-random regularity in who gets accepted, even though it uses no
 information about who is doing the choosing.
 
@@ -437,24 +437,24 @@ computational cost.
 
 ## Protocol {#sec-protocol} Alison Shorten
 
-Evaluation follows **leave-one-wave-out cross-validation**: each of the 21 waves is held
+Evaluation follows **leave-one-wave-out cross-validation**, where each of the 21 waves is held
 out in turn as the test fold while the model is fit on the remaining 20, so every held-out
 participant is a complete cold start (@sec-baseline, @sec-clustering, @sec-factorization-machine).
 This mirrors the natural unit of the data, a closed pool of participants who only ever meet
 each other, and avoids the leakage a random split would introduce by placing both sides of an
 encounter, or an encounter and its wave-mates, on opposite sides of the split.
 
-The relevance label is the mutual outcome `match == 1`: both participants said yes. This is
+The relevance label is the mutual outcome `match == 1`, meaning both participants said yes. This is
 stricter than the directional decision `dec` used to train the factorization machine and the
-clustering method's per-direction tables (@sec-method), which is deliberate: evaluation asks
-whether a *reciprocal* recommendation was surfaced, not whether one side alone was interested.
+clustering method's per-direction tables (@sec-method), and that is deliberate, since evaluation
+asks whether a *reciprocal* recommendation was surfaced, not whether one side alone was interested.
 
-The candidate set requires no construction: as established in @sec-data, every participant met
+The candidate set requires no construction. As established in @sec-data, every participant met
 every opposite-sex participant in their wave, so each held-out participant's candidate list is
 exactly the partners recorded for their wave, fully observed with no negative sampling and no
-exposure bias to guard against. No additional filtering applies: the recorded pairs are already the eligible set.
+exposure bias to guard against. No additional filtering applies, since the recorded pairs are already the eligible set.
 
-Rankings are cut off at $k=3$: candidate lists run 5-22 partners (median 16, @fig-structure),
+Rankings are cut off at $k=3$, since candidate lists run 5-22 partners (median 16, @fig-structure),
 short enough that a conventional cutoff like 10 would cover most of a list and say little
 about ranking quality. Two relevance metrics are reported, Recall@3 and NDCG@3, plus
 Precision@3 and MRR as supporting detail, alongside one beyond-accuracy metric, Coverage@3, the share of the candidate pool that ever appears in a top-3 list, which speaks to the fairness
@@ -488,17 +488,17 @@ and the number of folds where the method beat chance. {#tbl-results}
 methods, mean over 21 folds with standard-deviation error
 bars.](figures/comparison_results.png){#fig-results width=95%}
 
-The clustering method is the clearest failure of the three: it does not reliably beat a
+The clustering method is the clearest failure of the three. It does not reliably beat a
 chance-level ranking (7 of 21 folds, $p=0.128$), and it is the only method whose mean NDCG@3
 sits *below* the popularity baseline. Collapsing each side of a pairing to one of four clusters
 throws away most of the profile information the other two methods use, and the resulting
 $4\times4$ compatibility table is simply too coarse to separate genuine reciprocal fits from
-noise at this sample size: interpretable, but not competitive.
+noise at this sample size. It is interpretable, but not competitive.
 
 The factorization machine reaches the best mean value on every relevance metric and is the
 only method that clears chance with high confidence ($p<0.001$ by both tests, 17 of 21 folds).
-Its advantage over the popularity baseline is real in direction: higher NDCG@3 in 14 of 21
-folds, mean difference $+0.020$. But the paired comparison between the two is not statistically
+Its advantage over the popularity baseline is real in direction, with higher NDCG@3 in 14 of 21
+folds and a mean difference of $+0.020$. But the paired comparison between the two is not statistically
 significant ($p=0.435$ $t$-test, $p=0.229$ Wilcoxon), and 21 folds is a small sample for that
 kind of test. The between-fold variance documented in @sec-data (match rates from 8.3% to
 31.0%) means a handful of unusually easy or hard waves can dominate the comparison, so this is
@@ -509,7 +509,7 @@ matrix, @sec-factorization-machine) with the same protocol produces a numericall
 ranking, though whether that holds up as significant with more waves of data stays an open
 question.
 
-Coverage@3 tells a complementary story: the baseline concentrates its top-3 slots on 27.6% of
+Coverage@3 tells a complementary story. The baseline concentrates its top-3 slots on 27.6% of
 the candidate pool (a direct consequence of ranking by a single predicted-popularity score that is largely invariant across deciders), while both personalized methods, whose scores
 depend on who is asking, spread recommendations across 64.9% of candidates. A wider spread is
 not automatically better (@sec-analysis returns to this from a fairness angle), but it does
