@@ -104,8 +104,8 @@ records one person's decision and is the natural training target, while the symm
 only when both parties accept, is the relevance label for ranking. Matches are far rarer than
 acceptances — 16.5% against 42.0% — so the positive class is small and accuracy would be a
 misleading measure (EDA §5). Acceptance is also markedly gendered, and the distinction between
-*giving* and *receiving* matters: men accepted 47.4% of the partners they met and women 36.5%, which
-seen from the receiving end means women were accepted 47.9% of the time and men 37.2% (EDA §5 and
+*giving* and *receiving* matters: men said yes on 47.4% of their dates and women on 36.5%;
+averaged per person, women were accepted at a mean rate of 47.9% and men at 37.2% (EDA §5 and
 §9). A model blind to the decider's gender is therefore miscalibrated for one of the two groups.
 
 ## Candidate sets, and whether the data can be evaluated
@@ -173,12 +173,18 @@ All analysis code lives in the repository rather than in this report:
 - `01_Speed_Dating_EDA.ipynb` — the exploratory analysis, cited above as **EDA §n**;
 - `02_Speed_Dating_Feature_Engineering.ipynb` — the feature construction, cited as **FE §n**. It
   narrates and verifies `sd_features.py`, the module holding the feature logic, so that the
-  modelling and evaluation steps import one definition rather than reimplementing it.
+  modelling and evaluation steps import one definition rather than reimplementing it;
+- `03_Baseline_Desirability_Model.ipynb` — the popularity baseline of @sec-baseline
+  (`baseline_desirability.py`);
+- `04_X1_Clustering.ipynb` and `04_Speed_Dating_Factorization_Machine.ipynb` — the two candidate
+  methods, developed in parallel and sharing the `04` prefix: the cluster-based method
+  (`x1_cluster.py`, ranking metrics in `evaluation.py`) and the factorization machine of
+  @sec-method (`sd_fm.py`).
 
-Both notebooks run top to bottom from a cold kernel under a fixed seed (`SEED = 42`),
-`make_report_figures.py` regenerates the figures above, and the exported feature table is committed
-alongside a generated data dictionary giving the definition, source, documented range and
-missingness of every column.
+All notebooks run top to bottom from a cold kernel on Python 3.11.9 with the pinned
+`requirements.txt` and a fixed seed (`SEED = 42`); `make_report_figures.py` regenerates the figures
+above, and the exported feature table is committed alongside a generated data dictionary giving the
+definition, source, documented range and missingness of every column.
 
 ## Feature set and leakage boundary {#sec-features}
 
@@ -192,7 +198,7 @@ the admissible blocks explicitly (EDA §13). @tbl-leakage gives the resulting pa
 | Admissible (known at signup) | Excluded, and why |
 |:----------------------------------|:---------------------------------|
 | Signup profile: age, race, field, career, goal, going-out and dating frequency, importance of shared race and religion, expected happiness | Scorecard ratings `attr, sinc, intel, fun, amb, shar`, recorded *during* the date |
-| 17 interest ratings, and `int_corr`, the pair's interest correlation | `like` and `prob`: near-restatements of the decision ($r = 0.51$, $0.31$) |
+| 17 interest ratings, and `int_corr`, the pair's interest correlation | `like` and `prob`: recorded at the moment of decision and closely tied to it ($r = 0.51$, $0.31$) |
 | Stated preference weights and their partner-side copies `pf_o_*` | The partner's in-date ratings `attr_o … prob_o`, `like_o`, `met_o` |
 | Self-ratings `attr3_1 … amb3_1`; pair-level `samerace` | `dec_o` as an input: it is the reverse direction's *label* |
 | Partner attributes joined on `pid` | `_s`, `_2`, `_3` surveys, recorded after the decisions; `condtn`; the four sparse columns of @tbl-hygiene |
@@ -222,13 +228,14 @@ oversight, and the same fact re-specifies the baseline (@sec-baseline).
 
 ### The engineered feature set
 
-The feature table holds 8,368 directed encounters described by 95 features in six blocks
-(@tbl-features), plus identifiers and both labels. Partner attributes are attached by a map-join on
-`pid`; we verified that the ready-made `pf_o_*` block is identical to the partner's own stated
-preferences before relying on either (FE §4 and §6).
+The feature table holds 8,368 directed encounters described by 95 features, the decider's gender
+and six blocks (@tbl-features), plus identifiers and both labels. Partner attributes are attached
+by a map-join on `pid`; we verified that the ready-made `pf_o_*` block is identical to the
+partner's own stated preferences before relying on either (FE §4 and §6).
 
 | Block | № | Example and rationale |
 |:------------------|----:|:---------------------------------------------|
+| Decider gender | 1 | `gender`: acceptance rates differ by gender (EDA §5) |
 | Profile, both sides | 20 | `age`, `goal`, `go_out`: the demographic basis of a content model |
 | Stated preferences | 12 | `pref_attr`: what each side says it wants, as shares summing to one |
 | Self-ratings | 10 | `selfrate_attr`: the pre-date stand-in for what a person is like |
@@ -251,15 +258,17 @@ built in FE §9).
 ![Stated preference weights against the weights implied by participants' actual decisions, by gender;
 both normalised to sum to one. Source: EDA §12.](figures/fig3_stated_revealed.png){#fig-stated-revealed width=94%}
 
-Two results justify the construction. Stated and revealed preferences genuinely diverge, and diverge
-differently by gender (@fig-stated-revealed): both groups act on shared interests and fun
+Two observations motivate the construction. Stated and revealed preferences genuinely diverge, and
+diverge differently by gender (@fig-stated-revealed): both groups act on shared interests and fun
 considerably more than they claim to, and on sincerity and intelligence considerably less. Were the
 two aligned, a compatibility feature would add nothing beyond the attributes themselves. The two
 directions also behave as correctly oriented directional features must: `compat_a2b`, which asks
 whether the partner matches *the decider's* criteria, correlates $+0.067$ with the decider's own
 decision, whereas its mirror `compat_b2a` does not ($-0.023$); against the symmetric `match` label
 the two are equal, at $+0.037$ each (FE §9). Had the join been inverted, these signs would have
-reversed.
+reversed. The sign pattern confirms the join's orientation; it does not show that weighting by
+stated preferences adds information beyond the partner's self-ratings, which is what the model
+comparison in @sec-results tests.
 
 ### Leakage discipline in preprocessing
 
@@ -291,12 +300,12 @@ trained on the training waves that predicts a participant's acceptance rate from
 profile alone, then applied to unseen participants. This preserves what a popularity baseline is
 meant to be — global, non-personalised, independent of who is choosing — while remaining computable
 for a cold start. The training-side desirability the model is fitted against is not a raw
-acceptance rate but a **Wilson lower bound** on it: the acceptance rate we can be confident a
-participant is achieving *at least*, given how many dates that estimate rests on. The interval
-shrinks a rate toward 0.5 when it comes from few observations and barely moves it when it comes
-from many, so a participant accepted by 4 of 4 partners is scored 0.51 rather than 1.00, while one
-accepted by 40 of 50 is scored 0.67 rather than 0.80 -- much closer to its raw value, since 50
-dates is enough evidence to largely trust it. This is what keeps a small, lucky sample from
+acceptance rate but a **Wilson lower bound** on it [@wilson1927probable]: the acceptance rate we can
+be confident a participant is achieving *at least*, given how many dates that estimate rests on. The
+bound is deliberately pessimistic: it pulls every rate down, and pulls it further when the rate
+comes from only a few dates. A participant accepted by 4 of 4 partners is scored 0.51 rather than
+1.00, while one accepted by 40 of 50 is scored 0.67 rather than 0.80 — much closer to its raw
+value, since 50 dates is enough evidence to largely trust it. This is what keeps a small, lucky sample from
 outranking a larger, more reliable one.
 
 <!-- PLACEHOLDER: baseline results. Report the same metrics and the same 21-fold protocol as
@@ -346,9 +355,10 @@ $k=0$ removes the interaction term and yields a linear logistic model through th
 The model is fitted in PyTorch by minimizing binary cross-entropy with logits plus an explicit
 $L_2$ penalty on the linear and latent weights,
 $\mathcal{L}=\operatorname{BCE}+\lambda(\lVert\mathbf{w}\rVert_2^2+
-\lVert\mathbf{V}\rVert_F^2)$. We use full-batch Adam, a fixed random seed of 42, and early stopping
-on validation log-loss with a patience of 20 epochs. For each outer held-out wave, the
-preprocessor and FM weights are refitted using only the other waves; the held-out wave is
+\lVert\mathbf{V}\rVert_F^2)$. We use full-batch Adam and a fixed random seed of 42. Early stopping on
+validation log-loss (patience 20 epochs) is used only during hyperparameter selection, where it
+fixes the epoch budget; the 21 outer fits then train for that fixed number of epochs. For each
+outer held-out wave, the preprocessor and FM weights are refitted using only the other waves; the held-out wave is
 transformed with that fold's fitted preprocessor.
 
 Reciprocity is introduced after directional prediction. The fitted model produces

@@ -332,7 +332,7 @@ def run_lowo_fm(feat: pd.DataFrame, cfg: dict, seed: int = SEED) -> tuple[pd.Dat
             (this row's own direction), ``p_ba`` (the mirror row's direction, joined back onto
             this row) and ``p_match`` (their harmonic mean).
         fold_diagnostics -- one row per wave: the direction-level ``dec`` classifier's AUC and
-            logloss, to sanity-check against the EDA's feasibility-probe ceiling (~0.59 AUC)
+            logloss, to sanity-check against the EDA's feasibility probe (~0.59 AUC)
             before trusting the ranking metrics built on top of it.
     """
     scored_parts, diag_rows = [], []
