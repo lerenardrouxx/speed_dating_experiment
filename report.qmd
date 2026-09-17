@@ -11,24 +11,6 @@ author:
   - name: "Sever Alin"
     affiliation: "HSLU"
 date: last-modified
-abstract: |
-  We build a reciprocal recommender for the Columbia speed-dating dataset
-  [@fisman2006gender], where the target is not whether one person accepts
-  another but whether both do: a mutual match. Pairings must be proposed
-  before the event, so only signup-time features are admissible, and
-  because each participant attends exactly one wave, every held-out
-  evaluation is a complete cold start. We compare three methods under
-  leave-one-wave-out cross-validation (21 folds): a predicted-desirability
-  popularity baseline, a gender-asymmetric clustering method pairing stated
-  preferences against self-reported traits, and a factorization machine
-  trained on the directional accept/reject decision and combined into a
-  symmetric score via the harmonic mean. All three are scored by one shared
-  evaluator (Recall@3, NDCG@3, Precision@3, MRR, Coverage@3) against a
-  randomized-ranking chance baseline. The factorization machine reaches the
-  best mean NDCG@3 (0.368 vs. 0.348 for the baseline) and is the only
-  method to clear chance with high confidence ($p<0.001$), though its edge
-  over the baseline is not statistically significant across the 21 folds,
-  a real limit of this evaluation sample.
 format:
   pdf:
     documentclass: article
@@ -55,7 +37,7 @@ jupyter: python3
 
 
 
-# Introduction and problem framing {#sec-intro}
+# Introduction and problem framing {#sec-intro} Petra (shortening)
 
 Speed dating compresses courtship into a single evening: each participant meets a series
 of opposite-sex partners for a few minutes and privately decides, immediately afterward,
@@ -97,7 +79,7 @@ baseline (@sec-results). "Success" here means a ranking that recovers more of a 
 short top-3 list than popularity alone can, without relying on information the
 reciprocal-recommendation setting doesn't have access to.
 
-# Data understanding {#sec-data}
+# Data understanding {#sec-data} Alin Shorten
 
 *Measurements below are tagged with where they can be reproduced: **EDA §n** means section n of the
 exploratory notebook, **FE §n** section n of the feature-engineering notebook; both are named in the
@@ -352,7 +334,7 @@ shared protocol of @sec-protocol.
 
 # Method {#sec-method}
 
-## Clustering {#sec-clustering}
+## Clustering {#sec-clustering} Petra Shorten
 
 Our first personalized method groups participants by profile similarity rather than modelling
 the accept/reject decision directly. It exploits a gender asymmetry from the data-understanding
@@ -387,7 +369,7 @@ structure captures reciprocal preference as well as either a non-personalized ra
 fully learned one.
 
 
-## Factorization Machine {#sec-factorization-machine}
+## Factorization Machine {#sec-factorization-machine} Andrin Shorten
 
 
 Our improved method is a second-order **factorization machine** (FM), a model that combines a
@@ -453,7 +435,7 @@ computational cost.
 # Evaluation {#sec-eval}
 
 
-## Protocol {#sec-protocol}
+## Protocol {#sec-protocol} Alison Shorten
 
 Evaluation follows **leave-one-wave-out cross-validation**: each of the 21 waves is held
 out in turn as the test fold while the model is fit on the remaining 20, so every held-out
@@ -486,7 +468,7 @@ averaged) using a paired $t$-test and a Wilcoxon signed-rank test across the 21 
 and addresses directly whether an observed metric gain reflects the model or noise from a
 small, unevenly-sized set of folds (@sec-data notes the 21 folds are not equivalent).
 
-## Results {#sec-results}
+## Results {#sec-results} Petronella
 
 @tbl-results summarizes all three methods under the protocol of @sec-protocol;
 @fig-results shows the same means with fold-level standard deviations, plus Coverage@3 on its
@@ -534,7 +516,7 @@ not automatically better (@sec-analysis returns to this from a fairness angle), 
 show that personalization changes *which* candidates get surfaced, not only how well the
 surfaced ones perform.
 
-# Analysis, limitations, and responsible use {#sec-analysis}
+# Analysis, limitations, and responsible use {#sec-analysis} Andrin 
 
 
 ## Fairness: exposure by gender
@@ -590,7 +572,7 @@ rather than accepting output as-is, verified the code by confirming it ran corre
 matched expected results, and reviewed and edited all drafted text ourselves before including
 it here.
 
-# Conclusion {#sec-conclusion}
+# Conclusion {#sec-conclusion} Alin
 
 We built and compared three reciprocal recommenders for pre-date pairing under one shared,
 leave-one-wave-out evaluation protocol: a popularity baseline, a gender-asymmetric clustering
@@ -601,7 +583,7 @@ both. A natural next step is collecting or simulating more waves, or pooling sev
 speed-dating datasets under the same protocol, to test whether the factorization machine's
 numerical edge over the baseline holds up as significant with more folds.
 
-# Contribution statement {#sec-contrib}
+# Contribution statement {#sec-contrib} Each one
 
 
 <!-- ALISON: fill this in with the team once you've had the meeting Andrin suggested,      I can't see everyone's actual effort, so this should say what really happened rather than
