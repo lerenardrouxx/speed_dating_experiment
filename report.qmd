@@ -581,8 +581,6 @@ numerical edge over the baseline holds up as significant with more folds.
 # Contribution statement {#sec-contrib} Each one
 
 
-<!-- ALISON: fill this in with the team once you've had the meeting Andrin suggested,      I can't see everyone's actual effort, so this should say what really happened rather than
-     be guessed for you. Starting point based on what's visible in the repo: -->
 
 - **Barnard Alison**: extended the shared evaluator (`evaluation.py`) with precision, MRR,
   per-user and chance-level metrics and significance tests; built the Z/X1/FM comparison
@@ -596,10 +594,4 @@ numerical edge over the baseline holds up as significant with more folds.
 ::: {#refs}
 :::
 
-<!--
-=======================================================================
-SEPARATE DELIVERABLE (do NOT include in this 10-page file):
-- Learning reflection, max 1 page. Create it as reflection.qmd / reflection.pdf.
-- Code submission or repository link.
-=======================================================================
--->
+
