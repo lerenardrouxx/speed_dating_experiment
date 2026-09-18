@@ -43,33 +43,28 @@ jupyter: python3
 "Reciprocal recommenders must satisfy the preferences and needs of the two parties involved in
 the recommendation. In contrast, the traditional items-to-people recommenders are one sided and
 must satisfy only the preference of the person for whom the recommendation is generated"
-[@palomares2021reciprocal]. Speed dating is a reciprocal domain in exactly this sense: each
-participant meets a series of opposite-sex partners for a few minutes and privately decides
-afterward whether they'd like to see that person again, but the pairing succeeds only if *both*
-sides say yes. That is what makes `match`, the label predicted here, symmetric by construction
-(@sec-data): a good ranking for participant A has to reflect what B is likely to think of A too,
-not just what A wants — a standard objective of ranking by predicted user preference alone does
-not capture that.
+[@palomares2021reciprocal]. Speed dating is such a domain: participants meet a series of
+opposite-sex partners briefly and privately decide afterward whether they would like to meet
+again, but a pairing succeeds only if *both* say yes. The label predicted here, `match`, is
+therefore symmetric by construction (@sec-data) — a good ranking for A must reflect what B would
+think of A, not just what A wants.
 
-The recommendation must also be made *before* the encounter: neither an organizer building a
-seating chart nor an app choosing whose profile to show can use anything a participant reveals
-during the date itself. Every feature used here is therefore restricted to what is knowable at
-signup (@sec-features), even though the strongest predictors of the actual decision are in-date
-impressions instead (@fig-leakage) — exactly why the pre-date task is hard. The same constraint
-also makes every evaluation fold a **cold start**: each of the 551 participants attends exactly
-one of the 21 waves (@sec-data), so holding out a wave removes those participants from training
-entirely, with no history of past acceptances to fall back on. This rules out reputation-style
-features and forces every method compared here, including the baseline, to generalize from a
-participant's stated profile alone.
+The recommendation must also be made *before* the encounter, since nothing revealed during the
+date exists yet when the pairing is chosen. Every feature is therefore restricted to what is
+knowable at signup (@sec-features), even though the strongest predictors of the decision are
+in-date impressions (@fig-leakage) — exactly why the pre-date task is hard. This also makes
+every fold a **cold start**: each of the 551 participants attends exactly one of the 21 waves
+(@sec-data), so holding out a wave removes those participants from training entirely, ruling out
+reputation-style features and forcing every method, baseline included, to generalize from stated
+profiles alone.
 
-Our research question is whether a personalized model combining both sides' pre-date profiles
-can rank reciprocal candidates better than a method that only knows how desirable each candidate
-is in general. We compare three methods — a popularity baseline, a clustering-based
-compatibility method, and a factorization machine — under one shared leave-one-wave-out protocol
-(@sec-protocol), reporting whether each beats chance and whether personalization beats the
-non-personalized baseline (@sec-results). "Success" means recovering more of a participant's
-actual mutual matches in a short top-3 list than popularity alone can, without relying on
-information this setting does not have access to.
+We ask whether a personalized model combining both sides' profiles can rank reciprocal
+candidates better than one that only knows how desirable each candidate is in general. Three
+methods — a popularity baseline, a clustering-based compatibility method, and a factorization
+machine — are compared under one leave-one-wave-out protocol (@sec-protocol), testing whether
+each beats chance and whether personalization beats the baseline (@sec-results); success means
+recovering more of a participant's true mutual matches in a top-3 list than popularity alone
+can.
 
 # Data understanding {#sec-data}
 <!-- Section owner: Alin Shorten -->
@@ -588,7 +583,7 @@ speed-dating datasets under the same protocol, to test whether the factorization
 numerical edge over the baseline holds up as significant with more folds.
 
 # Contribution statement {#sec-contrib}
-<!-- Section owner: Each one -->
+
 
 
 
@@ -598,8 +593,7 @@ numerical edge over the baseline holds up as significant with more folds.
 - **Kohler Andrin**: Implemented the Factorization Machine, wrote  @sec-factorization-machine and @sec-analysis.
 - **Tabalae Petronela**: designed and implemented the X1 clustering method (`x1_cluster.py`,
   `04_X1_Clustering.ipynb`) -- the gender-asymmetric clustering axes, the shrinkage-based
-  cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; wrote
-  the Introduction and Results sections of this report.
+  cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; 
 - **Sever Alin**: ...
 
 # References {.unnumbered}
