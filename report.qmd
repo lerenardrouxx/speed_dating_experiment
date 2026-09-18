@@ -359,16 +359,14 @@ fully learned one.
 ## Factorization Machine {#sec-factorization-machine}
 
 
-Our improved method is a second-order **factorization machine** (FM), a model that combines a
+Our improved method is a factorization machine (FM), a model that combines a
 linear predictor with learned pairwise feature interactions [@rendle2010factorization]. We train it
 on the directional decision `dec`: for a directed encounter $A \rightarrow B$, the target is one if
 participant $A$ would like to meet participant $B$ again. The input contains the full pre-date
 feature representation described in @sec-features. After fold-specific imputation, scaling and
 one-hot encoding, the 95 declared features form a 181-dimensional design matrix. Participant
-identifiers are used only to join the two directions of an encounter and never enter the model;
-this is necessary because every held-out participant is a complete cold start. No negative
-sampling is applied, since every eligible encounter in a wave was observed and has a decision
-label.
+identifiers are used only to join the two directions of an encounter and never enter the model
+this is necessary because every held-out participant is a complete cold start. 
 
 For a feature vector $\mathbf{x}\in\mathbb{R}^{d}$, the FM predicts the directional logit
 
@@ -378,10 +376,10 @@ $$
 $$
 
 where $w_0$ is the global bias, $w_i$ are linear coefficients, and
-$\mathbf{v}_i\in\mathbb{R}^{k}$ is the latent vector associated with feature $i$. The inner product
-$\langle\mathbf{v}_i,\mathbf{v}_j\rangle$ parameterises an interaction without estimating a
-separate coefficient for every feature pair. The implementation in `sd_fm.py` evaluates this term
-with the standard linear-time reformulation rather than explicitly enumerating all pairs. Setting
+$\mathbf{v}_i\in\mathbb{R}^{k}$ is the latent vector associated with feature $i$. The inner product $\langle\mathbf{v}_i,\mathbf{v}_j\rangle$ parameterises an interaction without
+estimating a separate coefficient for every feature pair. Rather than enumerating all
+$\binom{181}{2} = 16{,}290$ feature pairs, `sd_fm.py` computes the pairwise interaction term with
+the exact rearrangement of @rendle2010factorization, which yields the same value at a cost of $O(dk)$ instead of $O(d^2k)$. Setting
 $k=0$ removes the interaction term and yields a linear logistic model through the same code path.
 
 The model is fitted in PyTorch by minimizing binary cross-entropy with logits plus an explicit
@@ -416,8 +414,7 @@ $\{0.01,0.05\}$. Configurations were compared by validation log-loss, while earl
 the epoch budget. The selected configuration ($k=16$, $\lambda=0.05$, learning rate $0.05$, 40
 epochs) was then reused for every outer fit. Because waves used during tuning also appear in the
 outer evaluation, this is a non-nested cross-validation design and its performance estimate may be
-mildly optimistic; a fully nested search was not used because of its substantially greater
-computational cost.
+mildly optimistic.
 
 # Evaluation {#sec-eval}
 
@@ -518,15 +515,21 @@ deciders, while both personalized methods spread recommendations across 64.9%. A
 is not automatically better (@sec-analysis), but it shows personalization changes *which*
 candidates surface, not just how well the surfaced ones perform.
 
-# Analysis, limitations, and responsible use {#sec-analysis}
+# Analysis and Limitations {#sec-analysis}
 
+## Analysis
 
-## Fairness: exposure by gender
+The (@sec-results) showed that the factorization machine ranks best on every relevance metric. However, the difference between the popularity baseline and the factorization machine is small and statistically insignifant. A further finding was that there was no difference between a factorization machine with a non-linear interaction term compared to a simpler factorization machine without it. This finding suggests that nothing is gained by modelling how one participant's attributes interact with their partner's.
+The clustering method fails for the simple reason that it cannot tell its candidates apart. Each participant is placed in one of four groups per gender, and a candidate's score depends only on which group they land in. A woman ranking sixteen men therefore sees at most four different scores, so most of her candidates have exactly the same score and her top three are picked largely at random. 
 
-@sec-data flags gender rather than race as the axis for a fairness check, since the smallest
-racial groups in this sample hold too few participants (around 26) to support a reliable
-per-group estimate, while the sample splits close to evenly by gender (221 women, 231 men
-across the pooled per-decider evaluation). @tbl-gender reports each method's NDCG@3 separately
+## Fairness: Coverage
+
+Coverage@3 is the share of a wave's candidates who appear in anyone's top three. The popularity baseline surfaces only 27.6% of the pool, while both personalized methods reach 64.9%. This matters because attention in this data is already concentrated: the most desirable tenth of participants receive 22.8% of all acceptances and 4.0% receive none (@sec-data). A popularity ranking simply repeats that pattern, recommending the same well-liked people to everyone. The factorization machine is the better case, reaching more than twice as many candidates while still ranking best on accuracy. The clustering method reaches the same coverage for a different reason: most of its candidates score identically, so the random tie-break, not the model, decides who gets shown.
+
+## Fairness: Exposure by gender
+
+Both the baseline and the clustering method are essentially gender-neutral, while the factorization machine shows the largest gap: men's rankings score 0.031 higher in NDCG@3 than women's.
+ @tbl-gender reports each method's NDCG@3 separately
 for women and men as deciders.
 
 | Method | Women's NDCG@3 | Men's NDCG@3 | Gap (men minus women) |
@@ -543,17 +546,9 @@ factorization machine, the best-performing method overall, is also the one with 
 gender gap: men's rankings score 0.031 higher in NDCG@3 than women's, alongside the acceptance
 asymmetry already reported in @sec-data (men accepted 47.4% of partners, women 36.5%).
 
-This gap isn't explained by women simply having fewer real matches to find: matches are
-symmetric, so the same number of match events exist from either side. It more plausibly
-reflects class imbalance in the training signal: women say yes to a partner less often than
-men do (36.5% vs. 47.4%), so the model has proportionally fewer positive examples to learn
-what a woman's "yes" looks like from a pre-date profile, while it has more to learn from on
-the male side. That is a data-shape effect, not evidence the model treats gender as an input;
-gender itself is never a feature. A 0.031-point NDCG@3 gap on the best-performing method is
-still large enough to matter in practice: exactly the kind of asymmetry that would compound if
-this were deployed at scale.
+This is not because women have fewer matches to find, since matches are symmetric and both sides have the same number. The more likely cause is the training signal: women said yes to 36.5% of their partners against men's 47.4%, so the model sees proportionally fewer examples of a woman's "yes" and learns that side less well.
 
-## A second limitation: sample and era
+## Sample and era
 
 Beyond the gender gap, the sample itself is a limitation worth stating plainly: 551 graduate
 and professional students at one university, in speed-dating events run in 2002-2004
@@ -561,7 +556,7 @@ and professional students at one university, in speed-dating events run in 2002-
 shifted since; nothing here generalizes to a general-population dating app two decades later,
 and every metric in @sec-results should be read as an estimate over this specific population.
 
-## Responsible use of AI tools
+# Responsible use of AI tools
 
 We used Claude (Anthropic's AI assistant) as a working tool throughout this part of the
 project, but the underlying work is ours: we extended our shared evaluator (`evaluation.py`)
@@ -594,7 +589,7 @@ numerical edge over the baseline holds up as significant with more folds.
 - **Barnard Alison**: extended the shared evaluator (`evaluation.py`) with precision, MRR,
   per-user and chance-level metrics and significance tests; built the Z/X1/FM comparison
   pipeline, notebook, and results figure; drafted this report.
-- **Kohler Andrin**: ...
+- **Kohler Andrin**: Implemented the Factorization Machine, wrote  @sec-factorization-machine and @sec-analysis.
 - **Tabalae Petronela**: designed and implemented the X1 clustering method (`x1_cluster.py`,
   `04_X1_Clustering.ipynb`) -- the gender-asymmetric clustering axes, the shrinkage-based
   cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; wrote
