@@ -325,33 +325,33 @@ shared protocol of @sec-protocol.
 ## Clustering {#sec-clustering}
 <!-- Section owner: Petra Shorten -->
 
-Our first personalized method groups participants by profile similarity rather than modelling
-the accept/reject decision directly, exploiting a gender asymmetry from the data-understanding
-stage (@fig-stated-revealed): what men report *being like* and what women report *wanting* are
-the more informative sides of each stated block. Men are clustered on five self-ratings
-(`selfrate_attr` ... `selfrate_amb`) and women on four preference weights (`pref_attr`,
-`pref_sinc`, `pref_intel`, `pref_fun`), each with $k$-means, $k=4$ per side, on standardized,
-median-imputed inputs. The remaining two preference weights, `pref_amb` and `pref_shar`, are
-excluded from the clustering distance — they're exactly zero for a substantial minority of
-women (12 and 14 of 274) and would otherwise let that zero inflation dominate the split — and
-kept instead as per-person zero-indicator features.
+Our first personalized method sorts people into types instead of predicting each decision
+directly. We take the design from @alsaleh2011improving, who cluster men by their attributes
+and women by their preferences, then pair male clusters with female clusters and recommend
+people from the matching clusters. (Later work by the same group swapped the lookup for a
+tensor space model [@kutty2012tensor]; we keep the simpler clustering version.)
 
-Every training pair falls into one of $4\times4=16$ (male-cluster, female-cluster) cells. Within
-each fold's training waves we build three lookup tables over these cells — the rate at which
-women said yes, the rate at which men said yes, and the mutual match rate — each shrunk toward
-the fold's global rate with $m=20$ pseudo-counts, the same convention used for the behavioural
-features in @sec-features. A held-out participant needs no training history to be scored:
-cluster assignment applies the fold's fitted $k$-means directly to their own signup profile
-(@sec-features), and each directed encounter is scored by the table matching its decider — the
-female-decision table on a woman's row, the male-decision table on a man's — so the ranking a
-woman sees is built from other women's revealed behaviour in her own cluster pairing.
+The design assumes the two genders are best described by different things, and our own data
+agrees (@fig-stated-revealed): for men, what they say they *are like* is the more useful signal,
+and for women, what they say they *want*. We therefore cluster men on their five self-ratings
+and women on four preference weights (`pref_attr`, `pref_sinc`, `pref_intel`, `pref_fun`), using
+$k$-means with $k=4$ on each side, after standardizing and filling gaps with the median. We
+leave the last two weights, `pref_amb` and `pref_shar`, out of the clustering: they are exactly
+zero for 12 and 14 of the 274 women, and those zeros would end up driving the split instead of
+real differences in taste. We keep them as simple yes/no flags instead.
 
-This method is coarser than the factorization machine by design: it discards all profile
-information beyond the clustering axes, representing compatibility as a $4\times4$ table rather
-than a learned interaction over 95 features. Comparing it against both the baseline and the
-factorization machine (@sec-results) tests whether a simple, interpretable compatibility
-structure captures reciprocal preference as well as either a non-personalized ranking or a
-fully learned one.
+That gives $4\times4=16$ possible (male type, female type) pairs. For each fold we look at the
+training waves and count, for every pair of types, how often the woman said yes, how often the
+man said yes, and how often both did. Rare combinations are pulled toward the fold's overall
+rate using $m=20$ pseudo-counts, so a pair seen only a few times cannot produce an extreme score
+(@sec-features). Nobody needs a past history to be scored: we read a held-out participant's own
+signup answers, assign them a type with the fold's $k$-means, and rank each candidate by how
+often that pair of types produced a *mutual* match. Ranking on the mutual rate matters. If we
+ranked a woman's candidates by how likely she is to say yes, we would be back to a one-sided
+recommender, and what we actually score against is the mutual `match` label (@sec-protocol).
+
+The method is deliberately rough: a $4\times4$ table of type pairs instead of a model that
+learns from all 95 features. Whether that is enough is what @sec-results tests.
 
 
 ## Factorization Machine {#sec-factorization-machine}
@@ -460,7 +460,7 @@ means with fold-level SDs, Coverage@3 alongside the other metrics.
 | Method | Recall@3 | NDCG@3 | Precision@3 | MRR | Coverage@3 | vs. chance ($p$, folds won) |
 |:--|--:|--:|--:|--:|--:|:--|
 | Popularity baseline (Z) | 0.350 (0.216) | 0.348 (0.179) | 0.260 (0.124) | 0.480 (0.143) | 0.276 (0.131) | $p=0.011$, 15/21 |
-| Clustering (X1) | 0.239 (0.136) | 0.254 (0.110) | 0.210 (0.094) | 0.417 (0.101) | 0.649 (0.138) | $p=0.128$, 7/21 |
+| Clustering (X1) | 0.242 (0.108) | 0.255 (0.102) | 0.213 (0.091) | 0.414 (0.102) | 0.715 (0.111) | $p=0.174$, 9/21 |
 | **Factorization machine (FM)** | **0.360 (0.177)** | **0.368 (0.131)** | **0.272 (0.087)** | **0.512 (0.123)** | 0.649 (0.128) | $p<0.001$, 17/21 |
 
 : Mean (SD) across 21 leave-one-wave-out folds. Best value per relevance column in bold. The
@@ -471,25 +471,24 @@ and the number of folds where the method beat chance. {#tbl-results}
 folds with standard-deviation error bars.](figures/comparison_results.png){#fig-results
 width=95%}
 
-Clustering is the clearest failure: it does not reliably beat chance (7 of 21 folds,
-$p=0.128$) and is the only method whose mean NDCG@3 sits *below* the baseline. Collapsing each
-side to one of four clusters discards most profile information, and the resulting $4\times4$
-table is too coarse to separate genuine fits from noise: interpretable, not competitive.
+Clustering is the clear failure of the three. It does not reliably beat a random ranking (it
+wins only 9 of 21 folds, $p=0.174$), and it is the only method that scores below the popularity
+baseline on NDCG@3. Reducing each person to one of four types throws away almost everything the
+other methods use, and a table of 16 type pairs is too blunt to tell a promising match apart
+from a random one. It is easy to explain, but it does not work.
 
-The factorization machine reaches the best mean value on every relevance metric and is the
-only method that clears chance with high confidence ($p<0.001$, 17 of 21 folds). Its edge over
-the baseline is directionally real — higher NDCG@3 in 14 of 21 folds, mean difference
-$+0.020$ — but not statistically significant ($p=0.435$ $t$-test, $p=0.229$ Wilcoxon), and the
-large between-fold variance in match rate (@sec-data: 8.3%-31.0%) means a few easy or hard
-waves can dominate a 21-fold test. Both personalized methods point the same direction as the
-baseline's popularity signal, just from richer representations — the FM's 181-dimensional
-design matrix (@sec-factorization-machine) versus the baseline's single desirability score — so
-the numeric edge is best read as an open question rather than a settled result.
+The factorization machine scores best on every accuracy metric, and it is the only method that
+clearly beats a random ranking ($p<0.001$, 17 of 21 folds). It also comes out ahead of the
+baseline, winning 14 of 21 folds with a mean NDCG@3 difference of $+0.020$. That lead is not
+large enough to be statistically significant, though ($p=0.435$ $t$-test, $p=0.229$ Wilcoxon).
+With only 21 folds, and with match rates varying from 8.3% to 31.0% between waves (@sec-data), a
+couple of unusually easy or hard waves can swing the comparison either way. So the FM is ahead,
+but we cannot show the lead is real.
 
-The FM's defining feature is its pairwise interaction term (@sec-factorization-machine), so
-@tbl-fm-ablation checks directly whether that term earns its keep: the identical pipeline rerun
-with $k=0$ — same features, preprocessing and hyperparameters — collapses the model to plain
-logistic regression.
+The FM's whole selling point is the interaction term that lets feature pairs combine
+(@sec-factorization-machine). Does it actually help? @tbl-fm-ablation answers this by rerunning
+the same pipeline with $k=0$, which switches that term off and leaves plain logistic regression
+on the same features, preprocessing and settings.
 
 | Variant | Recall@3 | NDCG@3 | Precision@3 | MRR | Coverage@3 |
 |:--|--:|--:|--:|--:|--:|
@@ -499,21 +498,20 @@ logistic regression.
 : Mean (SD) across the same 21 leave-one-wave-out folds, scored by the same evaluator as
 @tbl-results. {#tbl-fm-ablation}
 
-The linear-only variant is statistically indistinguishable from the full FM: their paired
-NDCG@3 difference is $+0.001$ (full FM's favour), the FM wins only 10 of 21 folds, and neither
-test approaches significance ($p=0.950$ $t$-test, $p=0.892$ Wilcoxon). Linear-only matches or
-slightly exceeds the FM on every other metric, clears chance just as confidently ($p<0.001$,
-16/21), and is even a marginally better directional classifier (AUC 0.618 vs. 0.607). The
-interaction term, in other words, is not doing measurable work: the FM's advantage over Z
-traces to the richer 181-feature representation itself, not the pairwise interactions layered
-on top of it — directly qualifying the earlier framing of personalization as a *learned
-interaction*.
+The answer is no. The two versions are indistinguishable: the full FM is ahead by just $0.001$
+on NDCG@3, it wins only 10 of the 21 folds, and neither test comes anywhere near significance
+($p=0.950$ $t$-test, $p=0.892$ Wilcoxon). On every other metric the simpler model is equal or
+slightly better, it beats a random ranking just as clearly ($p<0.001$, 16 of 21 folds), and it
+even predicts individual decisions slightly better (AUC 0.618 against 0.607). So the interaction
+term is not what makes the FM work. What helps is the much larger set of features it uses,
+not the way it combines them in pairs.
 
-Coverage@3 tells a complementary story: the baseline concentrates its top-3 slots on 27.6% of
-the candidate pool, a direct result of ranking by one popularity score largely invariant across
-deciders, while both personalized methods spread recommendations across 64.9%. A wider spread
-is not automatically better (@sec-analysis), but it shows personalization changes *which*
-candidates surface, not just how well the surfaced ones perform.
+Coverage@3 tells a different kind of story. The baseline fills its top-3 lists from only 27.6%
+of the available people, because it scores everyone with a single popularity number that barely
+changes depending on who is choosing. The personalized methods spread much wider: 71.5% for
+clustering and 64.9% for the FM. Reaching more people is not automatically better
+(@sec-analysis), but it does show that personalization changes *who* gets recommended, not just
+how well the recommendations rank.
 
 # Analysis and Limitations {#sec-analysis}
 <!-- Section owner: Andrin -->
@@ -525,27 +523,29 @@ The clustering method fails for the simple reason that it cannot tell its candid
 
 ## Fairness: Coverage
 
-Coverage@3 is the share of a wave's candidates who appear in anyone's top three. The popularity baseline surfaces only 27.6% of the pool, while both personalized methods reach 64.9%. This matters because attention in this data is already concentrated: the most desirable tenth of participants receive 22.8% of all acceptances and 4.0% receive none (@sec-data). A popularity ranking simply repeats that pattern, recommending the same well-liked people to everyone. The factorization machine is the better case, reaching more than twice as many candidates while still ranking best on accuracy. The clustering method reaches the same coverage for a different reason: most of its candidates score identically, so the random tie-break, not the model, decides who gets shown.
+Coverage@3 is the share of a wave's candidates who appear in anyone's top three. The popularity baseline surfaces only 27.6% of the pool, while the personalized methods reach 64.9% (FM) and 71.5% (clustering). This matters because attention in this data is already concentrated: the most desirable tenth of participants receive 22.8% of all acceptances and 4.0% receive none (@sec-data). A popularity ranking simply repeats that pattern, recommending the same well-liked people to everyone. The factorization machine is the better case, reaching more than twice as many candidates while still ranking best on accuracy. The clustering method reaches the widest coverage of all, but not for a good reason. A person's own type never changes, so their candidates can only differ by the partner's type — at most four different scores for a list of roughly sixteen people. Most candidates therefore tie, and the random tie-break rather than the model decides who fills the top three.
 
 ## Fairness: Exposure by gender
 
-Both the baseline and the clustering method are essentially gender-neutral, while the factorization machine shows the largest gap: men's rankings score 0.031 higher in NDCG@3 than women's.
+The baseline is essentially gender-neutral, while the factorization machine shows the largest gap: men's rankings score 0.031 higher in NDCG@3 than women's.
  @tbl-gender reports each method's NDCG@3 separately
 for women and men as deciders.
 
 | Method | Women's NDCG@3 | Men's NDCG@3 | Gap (men minus women) |
 |:--|--:|--:|--:|
 | Popularity baseline (Z) | 0.294 | 0.298 | +0.004 |
-| Clustering (X1) | 0.250 | 0.248 | -0.002 |
+| Clustering (X1) | 0.246 | 0.262 | +0.016 |
 | Factorization machine (FM) | 0.308 | 0.339 | +0.031 |
 
 : NDCG@3 by decider gender, pooled across all 21 folds. {#tbl-gender}
 
-Both the baseline and the clustering method are close to gender-neutral by this measure, unsurprising for the baseline, since predicted desirability is fit on one pooled model, and for
-clustering, since its compatibility tables are already split by gender by construction. The
-factorization machine, the best-performing method overall, is also the one with the largest
-gender gap: men's rankings score 0.031 higher in NDCG@3 than women's, alongside the acceptance
-asymmetry already reported in @sec-data (men accepted 47.4% of partners, women 36.5%).
+The baseline treats both genders almost equally, which makes sense: it fits a single model for
+everyone. Clustering sits in the middle with a gap of +0.016. That follows from how it scores:
+it ranks candidates by the mutual-match rate (@sec-clustering), a single number for each pair of
+types, so nothing in the score is estimated separately for women and for men. The factorization
+machine is the best method overall but also the most uneven, ranking men's candidates 0.031
+higher in NDCG@3 than women's. This mirrors the acceptance gap already reported in @sec-data:
+men accepted 47.4% of their partners, women 36.5%.
 
 This is not because women have fewer matches to find, since matches are symmetric and both sides have the same number. The more likely cause is the training signal: women said yes to 36.5% of their partners against men's 47.4%, so the model sees proportionally fewer examples of a woman's "yes" and learns that side less well.
 
@@ -595,6 +595,8 @@ numerical edge over the baseline holds up as significant with more folds.
   `04_X1_Clustering.ipynb`) -- the gender-asymmetric clustering axes, the shrinkage-based
   cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; 
 - **Sever Alin**: ...
+
+\newpage
 
 # References {.unnumbered}
 
