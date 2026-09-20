@@ -314,40 +314,31 @@ cross-validation loop (FE §12; ranges audited in EDA §14).
 # Baseline {#sec-baseline}
 
 The baseline is a popularity ranking: candidates are ordered by desirability, the rate at which
-they are accepted, ignoring who is choosing. It is a meaningful rather than a trivial reference
-precisely because attention is concentrated: a size-free Gini of 0.323, with the top decile absorbing
-22.8% of acceptances (EDA §9), so a ranker that merely learns who is popular already captures a
-real regularity that a personalised method must beat.
+they are accepted, ignoring who is choosing. It is a meaningful reference rather than a strawman,
+since attention is concentrated (a size-free Gini of 0.323, with the top decile absorbing 22.8% of
+acceptances, EDA §9), so a ranker that merely learns who is popular already captures a real
+regularity that a personalised method must beat.
 
-The exploratory analysis established that it cannot be computed as usually worded (EDA §15.1):
-ranking by "acceptances received" presumes a history, and under leave-one-wave-out no held-out
-participant has one. Of the three available resolutions, computing desirability *within* the test
-wave uses the labels being predicted and is admissible only if declared as a deliberately
-optimistic, transductive upper bound, while scoring all candidates identically is leakage-free but
-reduces the baseline to a random shuffle. We therefore adopt predicted desirability: a model
-trained on the training waves that predicts a participant's acceptance rate from their signup
-profile alone, then applied to unseen participants. This keeps a popularity baseline global, non-personalised, and independent of who is choosing,
-while remaining computable for a cold start. The training-side desirability the model is fitted against is not a raw
-acceptance rate but a Wilson lower bound on it [@wilson1927probable]: the acceptance rate we can
-be confident a participant is achieving *at least*, given how many dates that estimate rests on. The
-bound is deliberately pessimistic, pulling every rate down and pulling it further when the rate
-comes from only a few dates. A participant accepted by 4 of 4 partners is scored 0.51 rather than
-1.00, while one accepted by 40 of 50 is scored 0.67 rather than 0.80, much closer to its raw
-value, since 50 dates is enough evidence to largely trust it. This is what keeps a small, lucky sample from
-outranking a larger, more reliable one.
+Ranking by realized acceptance rate is unavailable here, since leave-one-wave-out gives every
+held-out participant zero training history (@sec-data). Of the three ways to still define a
+baseline score, computing desirability *within* the test wave uses the labels being predicted and
+is admissible only as a deliberately optimistic, transductive upper bound, while scoring all
+candidates identically is leakage-free but reduces the baseline to a random shuffle. We therefore
+adopt predicted desirability: a model trained on the training waves that predicts a participant's
+acceptance rate from their signup profile alone, then applied to unseen participants. The
+training-side target is not a raw acceptance rate but a Wilson lower bound on it
+[@wilson1927probable]: the rate we can be confident a participant is achieving *at least*, given
+the number of dates it's based on. The bound is deliberately pessimistic, pulling every rate down
+and pulling it further when it comes from only a few dates. A participant accepted by 4 of 4
+partners is scored 0.51 rather than 1.00, while one accepted by 40 of 50 is scored 0.67 rather
+than 0.80, much closer to its raw value, since 50 dates is enough evidence to largely trust it.
 
-Under the protocol of @sec-protocol, the baseline reaches a mean Recall@3 of 0.350 (SD
-0.216) and NDCG@3 of 0.348 (SD 0.179) across the 21 folds, with Precision@3 = 0.260, MRR =
-0.480, and Coverage@3 = 0.276; it recommends from roughly a quarter of the candidate pool,
-consistent with a ranking that repeats the same generally-desirable participants across waves.
-Tested against a randomized ranking of the same candidates (@sec-protocol), the baseline's
-NDCG@3 is higher in 15 of 21 folds and the improvement is significant by both a paired
-$t$-test ($p=0.011$) and a Wilcoxon signed-rank test ($p=0.016$), showing that predicted desirability
-captures a real, non-random regularity in who gets accepted, even though it uses no
-information about who is doing the choosing.
-
-Results for this baseline are reported alongside the proposed method in @sec-results, under the
-shared protocol of @sec-protocol.
+Under the protocol of @sec-protocol, the baseline's full results are reported alongside the other
+two methods in @sec-results; it recommends from roughly a quarter of the candidate pool,
+consistent with a ranking that repeats the same generally-desirable participants across waves. It
+also beats a randomized-ranking chance baseline with the significance shown in @tbl-results,
+confirming predicted desirability captures a real, non-random regularity in who gets accepted,
+even though it uses no information about who is doing the choosing.
 
 # Method {#sec-method}
 
@@ -456,10 +447,10 @@ computational cost.
 
 Evaluation follows leave-one-wave-out cross-validation, where each of the 21 waves is held
 out in turn as the test fold while the model is fit on the remaining 20, so every held-out
-participant is a complete cold start (@sec-baseline, @sec-clustering, @sec-factorization-machine).
-This mirrors the natural unit of the data, a closed pool of participants who only ever meet
-each other, and avoids the leakage a random split would introduce by placing both sides of an
-encounter, or an encounter and its wave-mates, on opposite sides of the split.
+participant is a complete cold start. This mirrors the natural unit of the data, a closed pool
+of participants who only ever meet each other, and avoids the leakage a random split would
+introduce by placing both sides of an encounter, or an encounter and its wave-mates, on
+opposite sides of the split.
 
 The relevance label is the mutual outcome `match == 1`, meaning both participants said yes. This is
 stricter than the directional decision `dec` used to train the factorization machine and the
@@ -476,15 +467,16 @@ Rankings are cut off at $k=3$, since candidate lists run 5-22 partners (median 1
 short enough that a conventional cutoff like 10 would cover most of a list and say little
 about ranking quality. Two relevance metrics are reported, Recall@3 and NDCG@3, plus Precision@3 and MRR as
 supporting detail. One beyond-accuracy metric, Coverage@3 (the share of the candidate pool
-that ever appears in a top-3 list), speaks to the fairness discussion in @sec-analysis. All three methods compared in @sec-results (the popularity baseline, the clustering method, and the factorization machine) are scored by the same
+that ever appears in a top-3 list), speaks to the fairness discussion in @sec-analysis. All three methods compared in @sec-results are scored by the same
 evaluator function, so tie-breaking, the relevance-population convention, and every metric
 definition are held identical across methods rather than reimplemented per method.
 
 To confirm that "beats chance" is not assumed, each method's per-fold NDCG@3 is compared
 against a fully randomized ranking of the same candidates (50 random shuffles per fold,
-averaged) using a paired $t$-test and a Wilcoxon signed-rank test across the 21 folds. This randomized ranking serves only as a chance-level reference, not a fourth compared method,
-and addresses directly whether an observed metric gain reflects the model or noise from a
-small, unevenly-sized set of folds (@sec-data notes the 21 folds are not equivalent).
+averaged) using a paired $t$-test and a Wilcoxon signed-rank test across the 21 folds. This
+randomized ranking serves only as a chance-level reference, not a fourth compared method, and
+guards against an observed gain being noise from a small, unevenly-sized set of folds
+(@sec-data notes the 21 folds are not equivalent).
 
 ## Results {#sec-results}
 
