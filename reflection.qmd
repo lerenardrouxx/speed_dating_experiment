@@ -1,0 +1,27 @@
+---
+title: "Learning Reflection"
+subtitle: "Reciprocal Recommendation for Speed Dating"
+author:
+  - name: "Barnard Alison"
+    affiliation: "HSLU"
+date: last-modified
+format:
+  pdf:
+    documentclass: article
+    papersize: a4
+    fontsize: 11pt
+    geometry:
+      - margin=1in
+    colorlinks: true
+    number-sections: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+I learned that a result can be statistically clean and still be the wrong number to trust, and that catching the difference takes real scrutiny, not just double-checking the math. The Wilson lower bound in our baseline forced this. I had assumed raw acceptance rate should rank desirability, until I saw why that's wrong, since a person accepted 4 of 4 times isn't more desirable than one accepted 40 of 50, just less measured. The factorization machine reinforced the same lesson. It beats the baseline on every metric, but the difference isn't statistically significant across 21 folds, so I reported that as an open question instead of a clean win.
+
+I also learned why a shared evaluator has to exist before each person starts building their own method, not after. Once each of us had already written our own version of the same ranking metrics, they quietly disagreed, not because anyone's code was wrong, but because writing the same test twice guarantees it eventually drifts. Retrofitting one shared definition afterward is possible, but it takes real effort to trace down every place the numbers might differ, effort that creating a single shared evaluator from day one would have avoided.
+
+More generally, this project changed how I think about recommender systems themselves. I came in assuming a good recommender is one that predicts what a person wants. Building a reciprocal recommender, where a pairing only works if both sides want it, showed me that accuracy alone isn't the right lens. Our personalized methods spread recommendations across far more of the candidate pool than the popularity baseline did, changing who gets seen at all, not just how well the top picks perform. That distinction, between getting a ranking right and shaping who is even in the running, feels like the real lesson of this course.
