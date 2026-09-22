@@ -529,6 +529,10 @@ surfaced ones perform.
 # Analysis, limitations, and responsible use {#sec-analysis}
 
 
+## Fairness: Coverage
+
+Coverage@3 is the share of a wave's candidates who appear in anyone's top three. The popularity baseline surfaces only 27.6% of the pool, while the personalized methods reach 64.9% (FM) and 71.5% (clustering). This matters because attention in this data is already concentrated: the most desirable tenth of participants receive 22.8% of all acceptances and 4.0% receive none (@sec-data). A popularity ranking simply repeats that pattern, recommending the same well-liked people to everyone. The factorization machine is the better case, reaching more than twice as many candidates while still ranking best on accuracy. The clustering method reaches the widest coverage of all, but not for a good reason. A person's own type never changes, so their candidates can only differ by the partner's type -- at most four different scores for a list of roughly sixteen people. Most candidates therefore tie, and the random tie-break rather than the model decides who fills the top three.
+
 ## Fairness: exposure by gender
 
 @sec-data flags gender rather than race as the axis for a fairness check, since the smallest
@@ -598,8 +602,11 @@ numerical edge over the baseline holds up as significant with more folds.
 - Barnard Alison: extended the shared evaluator (`evaluation.py`) with precision, MRR,
   per-user and chance-level metrics and significance tests; built the Z/X1/FM comparison
   pipeline, notebook, and results figure; drafted this report.
-- Kohler Andrin: ...
-- Tabalae Petronela: ...
+- Kohler Andrin: implemented the Factorization Machine, wrote @sec-factorization-machine and @sec-analysis.
+- Tabalae Petronela: designed and implemented the X1 clustering method (`x1_cluster.py`,
+  `04_X1_Clustering.ipynb`) -- the gender-asymmetric clustering axes, the shrinkage-based
+  cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; wrote
+  the Introduction and Results sections of this report.
 - Sever Alin: ...
 
 # References {.unnumbered}
