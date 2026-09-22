@@ -410,36 +410,38 @@ mildly optimistic.
 ## Protocol {#sec-protocol}
 <!-- Section owner: Alison Shorten -->
 
-Evaluation follows **leave-one-wave-out cross-validation**: each of the 21 waves is held
+Evaluation follows leave-one-wave-out cross-validation, where each of the 21 waves is held
 out in turn as the test fold while the model is fit on the remaining 20, so every held-out
-participant is a complete cold start (@sec-baseline, @sec-clustering, @sec-factorization-machine).
-This mirrors the natural unit of the data, a closed pool of participants who only ever meet
-each other, and avoids the leakage a random split would introduce by placing both sides of an
-encounter, or an encounter and its wave-mates, on opposite sides of the split.
+participant is a complete cold start. This mirrors the natural unit of the data, a closed pool
+of participants who only ever meet each other, and avoids the leakage a random split would
+introduce by placing both sides of an encounter, or an encounter and its wave-mates, on
+opposite sides of the split.
 
-The relevance label is the mutual outcome `match == 1`: both participants said yes. This is
+The relevance label is the mutual outcome `match == 1`, meaning both participants said yes. This is
 stricter than the directional decision `dec` used to train the factorization machine and the
-clustering method's per-direction tables (@sec-method), which is deliberate: evaluation asks
-whether a *reciprocal* recommendation was surfaced, not whether one side alone was interested.
+clustering method's per-direction tables (@sec-method), and that is deliberate, since evaluation
+asks whether a *reciprocal* recommendation was surfaced, not whether one side alone was interested.
 
-The candidate set requires no construction: as established in @sec-data, every participant met
+The candidate set requires no construction. As established in @sec-data, every participant met
 every opposite-sex participant in their wave, so each held-out participant's candidate list is
-exactly the partners recorded for their wave, fully observed with no negative sampling and no
-exposure bias to guard against. No additional filtering applies: the recorded pairs are already the eligible set.
+exactly the partners recorded for their wave, fully observed with no negative sampling, no
+exposure bias to guard against, and no additional filtering, since the recorded pairs are
+already the eligible set.
 
-Rankings are cut off at $k=3$: candidate lists run 5-22 partners (median 16, @fig-structure),
+Rankings are cut off at $k=3$, since candidate lists run 5-22 partners (median 16, @fig-structure),
 short enough that a conventional cutoff like 10 would cover most of a list and say little
-about ranking quality. Two relevance metrics are reported, Recall@3 and NDCG@3, plus
-Precision@3 and MRR as supporting detail, alongside one beyond-accuracy metric, Coverage@3, the share of the candidate pool that ever appears in a top-3 list, which speaks to the fairness
-discussion in @sec-analysis. All three methods compared in @sec-results (the popularity baseline, the clustering method, and the factorization machine) are scored by the same
+about ranking quality. Two relevance metrics are reported, Recall@3 and NDCG@3, plus Precision@3 and MRR as
+supporting detail. One beyond-accuracy metric, Coverage@3 (the share of the candidate pool
+that ever appears in a top-3 list), speaks to the fairness discussion in @sec-analysis. All three methods compared in @sec-results are scored by the same
 evaluator function, so tie-breaking, the relevance-population convention, and every metric
 definition are held identical across methods rather than reimplemented per method.
 
 To confirm that "beats chance" is not assumed, each method's per-fold NDCG@3 is compared
 against a fully randomized ranking of the same candidates (50 random shuffles per fold,
-averaged) using a paired $t$-test and a Wilcoxon signed-rank test across the 21 folds. This randomized ranking serves only as a chance-level reference, not a fourth compared method,
-and addresses directly whether an observed metric gain reflects the model or noise from a
-small, unevenly-sized set of folds (@sec-data notes the 21 folds are not equivalent).
+averaged) using a paired $t$-test and a Wilcoxon signed-rank test across the 21 folds. This
+randomized ranking serves only as a chance-level reference, not a fourth compared method, and
+guards against an observed gain being noise from a small, unevenly-sized set of folds
+(@sec-data notes the 21 folds are not equivalent).
 
 ## Results {#sec-results}
 <!-- Section owner: Petronella -->
