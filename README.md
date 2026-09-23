@@ -63,6 +63,24 @@ Measured runtimes of the last full execution: notebook 01 about 90 s, 02 about 2
 `04_X1` about 80 s and `04_Speed_Dating_Factorization_Machine` about 75 s. Running notebook 02
 rewrites `Data/features/`; running notebook 03 rewrites `baseline_results_by_wave.csv`.
 
+## Reproducibility
+
+All analysis code used in `report.qmd` lives in this repository:
+
+- `01_Speed_Dating_EDA.ipynb` — the exploratory analysis, cited in the report as **EDA §n**;
+- `02_Speed_Dating_Feature_Engineering.ipynb` — the feature construction, cited as **FE §n**. It
+  narrates and verifies `sd_features.py`, the module holding the feature logic, so that the
+  modelling and evaluation steps import one definition rather than reimplementing it;
+- `03_Baseline_Desirability_Model.ipynb` — the popularity baseline
+  (`baseline_desirability.py`);
+- `04_X1_Clustering.ipynb` and `04_Speed_Dating_Factorization_Machine.ipynb` — the two candidate
+  methods, developed in parallel and sharing the `04` prefix: the cluster-based method
+  (`x1_cluster.py`, ranking metrics in `evaluation.py`) and the factorization machine (`sd_fm.py`).
+
+All notebooks run top to bottom from a cold kernel on Python 3.11.9 with the pinned
+`requirements.txt` and a fixed seed (`SEED = 42`); `make_report_figures.py` regenerates the report figures, and the exported feature table is committed alongside a generated data dictionary giving the
+definition, source, documented range and missingness of every column.
+
 ## Status
 
 Done: EDA, feature engineering, baseline **Z**, method **X₁** (cluster-based) and method **X₂**

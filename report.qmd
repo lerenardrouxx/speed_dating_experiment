@@ -67,219 +67,107 @@ recovering more of a participant's true mutual matches in a top-3 list than popu
 can.
 
 # Data understanding {#sec-data}
-<!-- Section owner: Alin Shorten -->
+<!-- Section owner: Alin -->
 
-*Measurements below are tagged with where they can be reproduced: **EDA §n** means section n of the
-exploratory notebook, **FE §n** section n of the feature-engineering notebook; both are named in the
-reproducibility note that closes this section.*
+*EDA §n and FE §n refer to sections of notebooks 01 and 02; see `README.md` for reproducibility details.*
 
-## The dataset and the unit of observation
+## Dataset and evaluation implications
 
-We use the Columbia speed-dating experiment of @fisman2006gender: 21 events, called *waves*, run
-between 2002 and 2004. Within a wave every participant met each opposite-sex participant for a
-four-minute date and then privately recorded whether they would like to see that person again. The
-published file holds 8,378 rows over 195 columns and describes 551 participants (EDA §2).
+The Columbia speed-dating experiment of @fisman2006gender contains 551 participants across 21
+waves (2002-2004), with 8,378 rows and 195 columns. Each participant met every opposite-sex
+participant in their wave for a four-minute date and recorded a yes/no decision (EDA §2-§4).
+A row is a **directed encounter**: `iid` deciding about `pid`. After dropping ten rows without a
+partner identifier, all 8,368 encounters have a verified reverse-direction row, and `match`
+equals the conjunction of the two decisions (FE §4). We use directional `dec` for training and
+mutual `match` as ranking relevance. Acceptance occurs in 42.0% of encounters, but only 16.5%
+produce a match, making accuracy alone unsuitable (EDA §5).
 
-One row is a **directed encounter** — participant `iid` meeting partner `pid`, recorded from `iid`'s
-point of view — so every meeting appears twice, once from each side. We verified this mirror
-structure rather than assuming it: for all 8,368 rows carrying a partner identifier the mirrored row
-is present, the partner's own decision equals the `dec_o` field stored on our row on 100% of rows,
-and `match` equals the conjunction of the two decisions on every row (EDA §3, FE §4).
-The ten rows without a partner identifier were dropped, as no pairwise feature is defined for them.
-Each participant appears in exactly one wave and no date crosses a wave boundary, which is what
-makes the wave a clean unit for cross-validation (@sec-protocol).
+Candidate sets are fully observed, so no negative sampling is needed. They contain 5-22 partners
+(median 16), motivating evaluation at rank 3. However, 18.0% of participants have no mutual match,
+and the median is only two matches per participant; these constraints limit attainable ranking
+scores (EDA §6, §10). Match rates also vary from 8.3% to 31.0% across waves, so we report variation
+across folds rather than only a pooled result (@sec-protocol).
 
-| Property | Value | Property | Value |
-|:-------------------------|:-----------|:--------------------------|:-----------|
-| Rows × columns | 8,378 × 195 | Participants per wave | 10–44 (med. 24) |
-| Participants / waves | 551 / 21 | Partners per participant | 5–22 (med. 16) |
-| Directed encounters used | 8,368 | Acceptance rate (`dec`) | 42.0% |
-| Mirrored rows present | 8,368 of 8,368 | Mutual match rate | 16.5% |
+Each participant appears in exactly one wave. **Leaving out a wave therefore creates complete
+cold start for both sides of every test pair**: none of the held-out participants has training
+history (EDA §15; FE §11). Historical acceptance and desirability cannot rank unseen people;
+features and the baseline must instead rely on signup profiles (@sec-baseline).
 
-: The dataset at a glance; values from EDA §3–§6 and FE §4. {#tbl-data-summary}
-
-Feedback is **implicit and binary**, and we retain both readings of it: the directional `dec`
-records one person's decision and is the natural training target, while the symmetric `match`, true
-only when both parties accept, is the relevance label for ranking. Matches are far rarer than
-acceptances — 16.5% against 42.0% — so the positive class is small and accuracy would be a
-misleading measure (EDA §5). Acceptance is also markedly gendered, and the distinction between
-*giving* and *receiving* matters: men said yes on 47.4% of their dates and women on 36.5%;
-averaged per person, women were accepted at a mean rate of 47.9% and men at 37.2% (EDA §5 and
-§9). A model blind to the decider's gender is therefore miscalibrated for one of the two groups.
-
-## Candidate sets, and whether the data can be evaluated
-
-![Left: participants per wave, i.e. the 21 cross-validation folds. Right: partners met per
-participant, which is exactly their candidate-set size. Both panels: EDA §4 and
-§6.](figures/fig1_structure.png){#fig-structure
-width=94%}
-
-The candidate set needs no construction and no negative sampling, which is unusual for an offline
-recommender evaluation: **every one of the 551 participants met every opposite-sex participant
-present in their wave** (verified in FE §4). Each candidate list is therefore fully observed, its
-length being the number of partners met — 5 to 22, median 16 (@fig-structure). Because the lists are
-short, a cut-off at rank 10 would cover most of a list, which is why the evaluation reports metrics
-at rank 3 (@sec-protocol).
-
-Two properties of the data limit what those metrics can show. A substantial minority of users have
-no relevant item: 18.0% obtained no mutual match, leaving their reciprocal rank undefined, and 5.6%
-accepted nobody; with a median of two matches per user, precision at rank 3 is capped at 2/3 for
-half the sample, so methods must be compared against each other rather than against a theoretical
-1.0 (EDA §10). The 21 folds are also not equivalent — per-wave match rates run from 8.3% to 31.0%, a
-3.7-fold spread — so a mean across folds without its standard deviation would conceal more than it
-reports. Part of that spread is by design: `condtn`, an experimental manipulation (limited versus
-extensive choice), is constant within each wave and therefore perfectly confounded with the split
-unit, explaining $R^2 \approx 0.11$ of the between-wave variance in match rate and correlating at
-$+0.88$ with candidate-set size. Fold difficulty is thus partly structural, and `condtn` cannot
-serve as a ranking feature, since a wave-constant value reorders nothing within a wave (EDA §10.1).
-
-Attention is unequally distributed, which is what makes a popularity baseline non-trivial: the
-size-free Gini coefficient of the acceptance rate is 0.323, the most desirable 10% of participants
-absorb 22.8% of all acceptances, and 4.0% receive none (EDA §9; see @sec-baseline). The sample is
-also demographically skewed — 55.2% of participants are European/Caucasian and the smallest racial
-groups hold roughly 26 people (EDA §8) — so per-group fairness metrics would rest on cells too thin
-to interpret, which is why @sec-analysis uses gender exposure as the fairness axis instead.
+The data also motivate modelling and fairness choices. Men accept 47.4% of dates and women 36.5%,
+supporting inclusion of the decider's gender. The most desirable 10% of participants receive
+22.8% of acceptances, motivating the popularity baseline (EDA §5, §9). Small racial groups
+(roughly 26 participants at the lower end) limit reliable subgroup comparisons; our fairness
+analysis therefore focuses on gender exposure (EDA §8; @sec-analysis).
 
 ## Data hygiene
 
-Missingness in the columns we rely on is minor: identifiers, decisions and the match label are
-essentially complete, while 59 of the 195 columns are more than half empty, almost all of them the
-follow-up surveys this project does not use (EDA §7). @tbl-hygiene lists the audits that did require
-a decision.
+The main cleaning decisions are grounded in the data audit (EDA §7, §12, §14.1):
 
-| Finding | Evidence | Decision |
-|:--------------------|:-------------------------|:-----------------------|
-| Values outside documented ranges | 617 cells over 25 columns (0.23%); `gaming` reaches 14 on a 1–10 scale | Clip to the documented range before scaling; unclipped, one 14 stretches a min–max scaler across the column |
-| Preference block on two scales | Documentation warns of a 1–10 scale in waves 6–9; that block proves already converted to shares, since only those waves hold non-integer values and they invert exactly to 1–10 answers | No rescaling required; normalise each participant's six weights to sum to one, since per-wave totals in fact range 90–148 |
-| Sparse pre-date columns | `expnum` 77% missing, `mn_sat` 63%, `tuition` 58%, `income` 49%, and not missing at random | Exclude all four rather than impute half a column into a fairness analysis; keep `exphappy` (1.5%) |
+- **Out-of-range values:** clip 617 cells across 25 columns to documented bounds before scaling.
+- **Sparse signup fields:** exclude `expnum`, `mn_sat`, `tuition` and `income` (49-77% missing);
+  retain `exphappy` (1.5% missing).
+- **Preference scales:** normalise each participant's six preference weights to sum to one.
+  Waves 6-9 were already converted from their original 1-10 ratings, so no second conversion is needed.
 
-: Data-quality findings and the decisions they produced; the three rows are established in EDA
-§14.1, §12 and §7.1 respectively. {#tbl-hygiene}
-
-One residual issue cannot be repaired and is reported rather than fixed. Waves 6–9 answered a
-*different question*: participants rated each attribute from 1 to 10 instead of distributing 100
-points across six attributes. Normalisation equalises the scale but not the question. Conversion
-discards intensity — a participant answering 9 to all six becomes indistinguishable from one
-answering 2 to all six — and the rating format elicits flatter profiles: on the identical normalised
-scale, waves 6–9 profiles are 2.7 times less spread out, and none of those participants gave any
-attribute zero weight against 20.2% elsewhere, because a minimum answer of 1 always leaves a positive
-share. This affects 101 of 541 participants and 4 of the 21 folds (EDA §12.1).
-
-## Reproducibility
-
-All analysis code lives in the repository rather than in this report:
-
-- `01_Speed_Dating_EDA.ipynb` — the exploratory analysis, cited above as **EDA §n**;
-- `02_Speed_Dating_Feature_Engineering.ipynb` — the feature construction, cited as **FE §n**. It
-  narrates and verifies `sd_features.py`, the module holding the feature logic, so that the
-  modelling and evaluation steps import one definition rather than reimplementing it;
-- `03_Baseline_Desirability_Model.ipynb` — the popularity baseline of @sec-baseline
-  (`baseline_desirability.py`);
-- `04_X1_Clustering.ipynb` and `04_Speed_Dating_Factorization_Machine.ipynb` — the two candidate
-  methods, developed in parallel and sharing the `04` prefix: the cluster-based method
-  (`x1_cluster.py`, ranking metrics in `evaluation.py`) and the factorization machine of
-  @sec-method (`sd_fm.py`).
-
-All notebooks run top to bottom from a cold kernel on Python 3.11.9 with the pinned
-`requirements.txt` and a fixed seed (`SEED = 42`); `make_report_figures.py` regenerates the figures
-above, and the exported feature table is committed alongside a generated data dictionary giving the
-definition, source, documented range and missingness of every column.
+Normalisation cannot remove the survey-design difference: rating each attribute independently
+loses intensity when converted to shares, unlike distributing a fixed 100 points. Waves 6-9
+still have preference profiles 2.7 times less spread out after normalisation. This limitation
+affects 101 of 541 participants with preference data and four evaluation folds (EDA §12.1).
 
 ## Feature set and leakage boundary {#sec-features}
 
-### Where the boundary lies
+### Available at recommendation time
 
-Since the system must recommend pairings *before* the event, a feature is admissible only if it is
-known at signup. Three independent sources place the boundary identically: our own problem statement
-(@sec-intro), the project proposal, and the leakage note in the dataset documentation, which names
-the admissible blocks explicitly (EDA §13). @tbl-leakage gives the resulting partition.
+Only information known **before the date** is admissible: signup profiles, interests, stated
+preferences, self-ratings and pairwise comparisons. We exclude in-date ratings (including
+`like` and `prob`), partner-side ratings, the reverse decision `dec_o`, and follow-up surveys.
+The wave-constant experimental condition `condtn` is also excluded because it cannot distinguish
+candidates within a wave. The exclusion list is enforced in `sd_features.py` (EDA §13; FE §10).
 
-| Admissible (known at signup) | Excluded, and why |
-|:----------------------------------|:---------------------------------|
-| Signup profile: age, race, field, career, goal, going-out and dating frequency, importance of shared race and religion, expected happiness | Scorecard ratings `attr, sinc, intel, fun, amb, shar`, recorded *during* the date |
-| 17 interest ratings, and `int_corr`, the pair's interest correlation | `like` and `prob`: recorded at the moment of decision and closely tied to it ($r = 0.51$, $0.31$) |
-| Stated preference weights and their partner-side copies `pf_o_*` | The partner's in-date ratings `attr_o … prob_o`, `like_o`, `met_o` |
-| Self-ratings `attr3_1 … amb3_1`; pair-level `samerace` | `dec_o` as an input: it is the reverse direction's *label* |
-| Partner attributes joined on `pid` | `_s`, `_2`, `_3` surveys, recorded after the decisions; `condtn`; the four sparse columns of @tbl-hygiene |
+![In-date ratings have much stronger correlations with decisions than admissible pre-date pair
+features (EDA §11, §13.2; FE §9).](figures/fig2_leakage.png){#fig-leakage width=80%}
 
-: The pre-date feature boundary. The exclusion list is enforced programmatically in `sd_features.py`
-and the check is executed in FE §10. {#tbl-leakage}
+The strongest signals are unavailable: `like` correlates with the decision at $|r|=0.51$ and
+in-date attractiveness at $0.49$, compared with $0.067$ for the strongest admissible pair feature
+(@fig-leakage). Results using in-date ratings therefore address a different, easier prediction task.
 
-![Absolute correlation with the decision, on one axis: the in-date scorecard against the eight
-strongest pre-date pair features. The remaining pre-date features are weaker
-still. Correlations from EDA §11 and §13.2, and FE §9.](figures/fig2_leakage.png){#fig-leakage
-width=88%}
+### Engineered features
 
-Obeying the constraint is expensive, and @fig-leakage states the cost plainly: the signals that
-dominate the decision are exactly the inadmissible ones — `like` at $|r| = 0.51$, attractiveness at
-$0.49$, fun at $0.41$ — while the strongest admissible pair feature reaches $0.067$. The pre-date
-task is not a weakened version of the in-date task but a substantially harder one, and comparisons
-against published figures that use in-date ratings would be misleading.
+The exported table contains 8,368 directed encounters and 95 features, plus identifiers and labels.
+Partner profiles are joined on `pid`; the supplied partner preferences were verified against the
+partner's own responses (FE §4, §6). @tbl-features summarises the feature blocks.
 
-A second consequence is stronger. Because participants attend exactly one wave, holding out a wave
-removes those people entirely: across all 21 folds, **zero of 551 held-out participants and zero of
-their partners have any training history** (EDA §15, per fold in FE §11). Every
-fold is a complete cold start. Reputation features — how often a person accepts, how often they are
-accepted — are the strongest pre-date signals available ($|r| \approx 0.40$ and $0.36$ estimated
-leave-one-out, EDA §13.3), yet under this protocol they collapse to a constant on every test row,
-and a constant cannot reorder a ranked list. They are therefore excluded by decision rather than
-oversight, and the same fact re-specifies the baseline (@sec-baseline).
+| Block | Count | Examples |
+|:-------------------------|------:|:------------------------------------|
+| Decider gender | 1 | `gender` |
+| Profiles, both sides | 20 | Age, goal, going-out frequency |
+| Stated preferences | 12 | Normalised attribute weights |
+| Self-ratings | 10 | Self-rated attractiveness, sincerity |
+| Interests | 34 | Hiking, museums and other interests |
+| Pairwise comparisons | 12 | Age difference, shared race, interest correlation |
+| Compatibility | 6 | Directional scores and harmonic mean |
 
-### The engineered feature set
+: Feature blocks; definitions and sources are in the exported data dictionary (FE §5-§9). {#tbl-features}
 
-The feature table holds 8,368 directed encounters described by 95 features, the decider's gender
-and six blocks (@tbl-features), plus identifiers and both labels. Partner attributes are attached
-by a map-join on `pid`; we verified that the ready-made `pf_o_*` block is identical to the
-partner's own stated preferences before relying on either (FE §4 and §6).
+Compatibility uses the partner's **signup self-ratings**, avoiding in-date assessments.
+`compat_a2b` weights B's attributes by A's stated preferences; `compat_b2a` reverses the direction.
+Their harmonic mean provides a symmetric score that is low when either direction is weak
+(FE §9). These features encode mutual suitability, but their usefulness must be established
+by evaluation rather than assumed from their construction.
 
-| Block | № | Example and rationale |
-|:------------------|----:|:---------------------------------------------|
-| Decider gender | 1 | `gender`: acceptance rates differ by gender (EDA §5) |
-| Profile, both sides | 20 | `age`, `goal`, `go_out`: the demographic basis of a content model |
-| Stated preferences | 12 | `pref_attr`: what each side says it wants, as shares summing to one |
-| Self-ratings | 10 | `selfrate_attr`: the pre-date stand-in for what a person is like |
-| Interests | 34 | `hiking`, `museums`: signup interest profiles for both sides |
-| Dyadic comparisons | 12 | `age_diff`, `samerace`, `race_importance`, `int_corr` |
-| Compatibility | 6 | `compat_a2b`, `compat_b2a`, `compat_harmonic` |
+![Stated preferences and weights inferred from decisions differ by gender; both are normalised
+to sum to one (EDA §12).](figures/fig3_stated_revealed.png){#fig-stated-revealed width=80%}
 
-: The 95 engineered features, built in FE §5–§9; full definitions are in the exported data
-dictionary. {#tbl-features}
+Both groups' decisions give more weight to shared interests and fun, and less to sincerity and
+intelligence, than their stated preferences suggest (@fig-stated-revealed). This gap limits
+how literally signup preferences should be interpreted.
 
-The compatibility block carries the reciprocal idea. The natural formulation — the distance between
-one person's stated preferences and the attribute ratings their partner received — is unavailable
-here, since those ratings are in-date and, for a cold-start partner, absent from training
-altogether. We substitute the partner's **self-ratings**, collected at signup and present for 98.4%
-of participants across all 21 waves, and score each direction separately: `compat_a2b` applies the
-decider's preference weights to the partner's self-rated attributes, `compat_b2a` is the mirror
-image, and `compat_harmonic` is their harmonic mean, a single symmetric score (EDA §15.4,
-built in FE §9).
+### Leakage-safe preprocessing
 
-![Stated preference weights against the weights implied by participants' actual decisions, by gender;
-both normalised to sum to one. Source: EDA §12.](figures/fig3_stated_revealed.png){#fig-stated-revealed width=94%}
-
-Two observations motivate the construction. Stated and revealed preferences genuinely diverge, and
-diverge differently by gender (@fig-stated-revealed): both groups act on shared interests and fun
-considerably more than they claim to, and on sincerity and intelligence considerably less. Were the
-two aligned, a compatibility feature would add nothing beyond the attributes themselves. The two
-directions also behave as correctly oriented directional features must: `compat_a2b`, which asks
-whether the partner matches *the decider's* criteria, correlates $+0.067$ with the decider's own
-decision, whereas its mirror `compat_b2a` does not ($-0.023$); against the symmetric `match` label
-the two are equal, at $+0.037$ each (FE §9). Had the join been inverted, these signs would have
-reversed. The sign pattern confirms the join's orientation; it does not show that weighting by
-stated preferences adds information beyond the partner's self-ratings, which is what the model
-comparison in @sec-results tests.
-
-### Leakage discipline in preprocessing
-
-Preprocessing separates two kinds of operation. Clipping and min–max scaling use the *documented*
-ranges from the data key rather than observed extrema, so they learn nothing from the data and
-cannot leak, and a value means the same thing in every fold. Everything estimated — standardisation,
-median imputation — is fitted on the training waves alone and applied to the held-out wave, because
-a scaler fitted on the full table has already seen the fold it will be evaluated on. Categorical
-codes are one-hot encoded against fixed category lists from the documentation, so the design matrix
-keeps identical width across all 21 folds even when a fold contains no instance of a category. The
-exported table is consequently unscaled by design, with the transformation applied inside the
-cross-validation loop (FE §12; ranges audited in EDA §14).
+The exported features remain unscaled. Clipping and range-based scaling use fixed bounds from
+the data dictionary; **learned transformations**, including median imputation and standardisation,
+are fitted only on training waves and applied to the held-out wave. One-hot encoding uses fixed,
+documented category lists to keep the feature dimensions consistent across folds (FE §12).
 
 # Baseline {#sec-baseline}
 
@@ -428,7 +316,7 @@ exactly the partners recorded for their wave, fully observed with no negative sa
 exposure bias to guard against, and no additional filtering, since the recorded pairs are
 already the eligible set.
 
-Rankings are cut off at $k=3$, since candidate lists run 5-22 partners (median 16, @fig-structure),
+Rankings are cut off at $k=3$, since candidate lists run 5-22 partners (median 16, @sec-data),
 short enough that a conventional cutoff like 10 would cover most of a list and say little
 about ranking quality. Two relevance metrics are reported, Recall@3 and NDCG@3, plus Precision@3 and MRR as
 supporting detail. One beyond-accuracy metric, Coverage@3 (the share of the candidate pool
@@ -461,7 +349,7 @@ and the number of folds where the method beat chance. {#tbl-results}
 
 ![Ranking quality and candidate-pool coverage at $k=3$ across the three methods, mean over 21
 folds with standard-deviation error bars.](figures/comparison_results.png){#fig-results
-width=95%}
+width=70%}
 
 Clustering is the clear failure of the three. It does not reliably beat a random ranking (it
 wins only 9 of 21 folds, $p=0.174$), and it is the only method that scores below the popularity
@@ -584,7 +472,11 @@ numerical edge over the baseline holds up as significant with more folds.
   `04_X1_Clustering.ipynb`) -- the gender-asymmetric clustering axes, the shrinkage-based
   cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; wrote
   the Introduction and Results sections of this report.
-- Sever Alin: ...
+- Sever Alin: Conducted the exploratory data analysis and developed the feature engineering
+  in `01_Speed_Dating_EDA.ipynb` and `02_Speed_Dating_Feature_Engineering.ipynb`; wrote
+  the Data understanding and Feature set and leakage boundary sections of this report.
+
+\newpage
 
 # References {.unnumbered}
 
@@ -601,3 +493,4 @@ I also learned why a shared evaluator has to exist before each person starts bui
 
 More generally, this project changed how I think about recommender systems themselves. I came in assuming a good recommender is one that predicts what a person wants. Building a reciprocal recommender, where a pairing only works if both sides want it, showed me that accuracy alone isn't the right lens. Our personalized methods spread recommendations across far more of the candidate pool than the popularity baseline did, changing who gets seen at all, not just how well the top picks perform. That distinction, between getting a ranking right and shaping who is even in the running, feels like the real lesson of this course.
 
+**Sever Alin:** Through the exploratory analysis and feature engineering, I learned that building a recommender starts with understanding what information is available at prediction time. Several strong predictors in this dataset were collected during the date, making them unsuitable for our pre-date recommendations. I also learned how the evaluation protocol constrains feature design: holding out entire waves creates a complete cold-start setting, so participant history cannot be used. Constructing directional compatibility features helped me understand why reciprocal recommendation must account for both people's preferences. Finally, the differences in survey scales showed me that numerical normalisation does not necessarily make measurements equivalent in meaning.
