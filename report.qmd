@@ -462,6 +462,8 @@ both. A natural next step is collecting or simulating more waves, or pooling sev
 speed-dating datasets under the same protocol, to test whether the factorization machine's
 numerical edge over the baseline holds up as significant with more folds.
 
+\newpage
+
 # Contribution statement {#sec-contrib}
 
 - Barnard Alison: extended the shared evaluator (`evaluation.py`) with precision, MRR,
@@ -470,8 +472,7 @@ numerical edge over the baseline holds up as significant with more folds.
 - Kohler Andrin: Implemented the Factorization Machine, wrote  @sec-factorization-machine and @sec-analysis.
 - Tabalae Petronela: Designed and implemented the X1 clustering method (`x1_cluster.py`,
   `04_X1_Clustering.ipynb`) -- the gender-asymmetric clustering axes, the shrinkage-based
-  cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; wrote
-  the Introduction and Results sections of this report.
+  cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; 
 - Sever Alin: Conducted the exploratory data analysis and developed the feature engineering
   in `01_Speed_Dating_EDA.ipynb` and `02_Speed_Dating_Feature_Engineering.ipynb`; wrote
   the Data understanding and Feature set and leakage boundary sections of this report.
@@ -494,5 +495,7 @@ I also learned why a shared evaluator has to exist before each person starts bui
 More generally, this project changed how I think about recommender systems themselves. I came in assuming a good recommender is one that predicts what a person wants. Building a reciprocal recommender, where a pairing only works if both sides want it, showed me that accuracy alone isn't the right lens. Our personalized methods spread recommendations across far more of the candidate pool than the popularity baseline did, changing who gets seen at all, not just how well the top picks perform. That distinction, between getting a ranking right and shaping who is even in the running, feels like the real lesson of this course.
 
 **Sever Alin:** Through the exploratory analysis and feature engineering, I learned that building a recommender starts with understanding what information is available at prediction time. Several strong predictors in this dataset were collected during the date, making them unsuitable for our pre-date recommendations. I also learned how the evaluation protocol constrains feature design: holding out entire waves creates a complete cold-start setting, so participant history cannot be used. Constructing directional compatibility features helped me understand why reciprocal recommendation must account for both people's preferences. Finally, the differences in survey scales showed me that numerical normalisation does not necessarily make measurements equivalent in meaning.
+
+**Tabalae Petronela** Building the clustering method taught me that a model can look like it is working while quietly answering a different question. My first version ranked each woman's candidates by how likely she was to say yes. The numbers looked reasonable, but in a project built around reciprocity that is the wrong objective: a pairing only counts when both people agree. Switching to the mutual-match rate barely moved the accuracy scores, which is exactly why the mistake was easy to overlook. The error was in what the score meant, not in how large it was.
 
 **Kohler Andrin** This project taught me that evaluating a recommender system always requires a baseline against which the methods can be compared. In our case of a reciprocal recommender system, correct preprocessing and feature engineering proved crucial, as did the train/test setup, which we implemented as a leave-one-wave-out design. I also learned that methods from the literature do not always transfer to the problem at hand, even when the original setting appears similar. We saw this with the clustering approach, which we adopted from a paper on an online dating recommender system: because the data available to us differed from the data in that paper, the clustering performed considerably worse than we had initially expected. 
