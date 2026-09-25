@@ -38,7 +38,7 @@ jupyter: python3
 
 
 # Introduction and problem framing {#sec-intro}
-<!-- Section owner: Petra (shortening) -->
+
 
 "Reciprocal recommenders must satisfy the preferences and needs of the two parties involved in
 the recommendation. In contrast, the traditional items-to-people recommenders are one sided and
@@ -67,7 +67,7 @@ recovering more of a participant's true mutual matches in a top-3 list than popu
 can.
 
 # Data understanding {#sec-data}
-<!-- Section owner: Alin -->
+
 
 *EDA §n and FE §n refer to sections of notebooks 01 and 02; see `README.md` for reproducibility details.*
 
@@ -201,7 +201,7 @@ even though it uses no information about who is doing the choosing.
 # Method {#sec-method}
 
 ## Clustering {#sec-clustering}
-<!-- Section owner: Petra Shorten -->
+
 
 Our first personalized method sorts people into types instead of predicting each decision
 directly. We take the design from @alsaleh2011improving, who cluster men by their attributes
@@ -296,7 +296,7 @@ mildly optimistic.
 
 
 ## Protocol {#sec-protocol}
-<!-- Section owner: Alison Shorten -->
+
 
 Evaluation follows leave-one-wave-out cross-validation, where each of the 21 waves is held
 out in turn as the test fold while the model is fit on the remaining 20, so every held-out
@@ -332,7 +332,7 @@ guards against an observed gain being noise from a small, unevenly-sized set of 
 (@sec-data notes the 21 folds are not equivalent).
 
 ## Results {#sec-results}
-<!-- Section owner: Petronella -->
+
 
 @tbl-results summarizes all three methods under @sec-protocol; @fig-results shows the same
 means with fold-level SDs, Coverage@3 alongside the other metrics.
@@ -351,7 +351,7 @@ and the number of folds where the method beat chance. {#tbl-results}
 folds with standard-deviation error bars.](figures/comparison_results.png){#fig-results
 width=70%}
 
-Clustering is the clear failure of the three. It does not reliably beat a random ranking (it
+Clustering is the clear failure of the three methods. It does not reliably beat a random ranking (it
 wins only 9 of 21 folds, $p=0.174$), and it is the only method that scores below the popularity
 baseline on NDCG@3. Reducing each person to one of four types throws away almost everything the
 other methods use, and a table of 16 type pairs is too blunt to tell a promising match apart
@@ -394,7 +394,7 @@ clustering and 64.9% for the FM. Reaching more people is not automatically bette
 how well the recommendations rank.
 
 # Analysis and Limitations {#sec-analysis}
-<!-- Section owner: Andrin -->
+
 
 ## Analysis
 
@@ -451,7 +451,7 @@ matched expected results, and reviewed and edited all drafted text ourselves bef
 it here.
 
 # Conclusion {#sec-conclusion}
-<!-- Section owner: Alin -->
+
 
 We built and compared three reciprocal recommenders for pre-date pairing under one shared,
 leave-one-wave-out evaluation protocol: a popularity baseline, a gender-asymmetric clustering
@@ -471,7 +471,7 @@ numerical edge over the baseline holds up as significant with more folds.
   pipeline, notebook, and results figure; drafted this report.
 - Kohler Andrin: Implemented the Factorization Machine, wrote  @sec-factorization-machine and @sec-analysis.
 - Tabalae Petronela: Designed and implemented the X1 clustering method (`x1_cluster.py`,
-  `04_X1_Clustering.ipynb`) -- the gender-asymmetric clustering axes, the shrinkage-based
+  `04_X1_Clustering.ipynb`) the gender-asymmetric clustering axes, the shrinkage-based
   cluster-pair compatibility tables, and the head-to-head evaluation against baseline Z; 
 - Sever Alin: Conducted the exploratory data analysis and developed the feature engineering
   in `01_Speed_Dating_EDA.ipynb` and `02_Speed_Dating_Feature_Engineering.ipynb`; wrote
