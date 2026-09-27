@@ -1,7 +1,7 @@
 # Reciprocal Recommendation for Speed Dating
 
-Predicting mutual second-date decisions **before the first date**, on the Columbia speed-dating
-experiment (Fisman & Iyengar, 2002–2004). Because a match requires *both* people to say yes, this
+Predicting mutual second-date decisions before the first date, on the Columbia speed-dating
+experiment (Fisman & Iyengar, 2002–2004). Because a match requires both people to say yes, this
 is a reciprocal recommendation problem: a good pairing has to satisfy two preference models at
 once, using only what is known at signup.
 
@@ -17,12 +17,13 @@ once, using only what is known at signup.
 | 3 | `03_Baseline_Desirability_Model.ipynb` | Baseline **Z**: popularity ranking by desirability predicted from signup profiles, with a chance-level reference and paired significance tests |
 | 4a | `04_X1_Clustering.ipynb` | Method **X₁**: gender-asymmetric cluster-based reciprocal recommender, scored head-to-head against Z |
 | 4b | `04_Speed_Dating_Factorization_Machine.ipynb` | Method **X₂**: factorization machine with harmonic-mean reciprocal scoring and a no-interaction ablation |
-| 5 | `report.qmd` | The written report (Quarto → `report.pdf`) |
+| 5 | `05_Comparison_Evaluation.ipynb` | The Evaluation Protocol used to compare the baseline with the 2 methods |
+| 6 | `report.qmd` | The written report (Quarto → `report.pdf`) |
 
 The two `04_` notebooks are parallel methods built on the same feature table; neither depends on
 the other.
 
-## Files
+## Other Files
 
 | Path | Role |
 |---|---|
@@ -76,6 +77,7 @@ All analysis code used in `report.qmd` lives in this repository:
 - `04_X1_Clustering.ipynb` and `04_Speed_Dating_Factorization_Machine.ipynb` — the two candidate
   methods, developed in parallel and sharing the `04` prefix: the cluster-based method
   (`x1_cluster.py`, ranking metrics in `evaluation.py`) and the factorization machine (`sd_fm.py`).
+- `05_Comparison_Evaluation.ipynb` the implemented evaluation protocol to compare the two methods with the baseline.
 
 All notebooks run top to bottom from a cold kernel on Python 3.11.9 with the pinned
 `requirements.txt` and a fixed seed (`SEED = 42`); `make_report_figures.py` regenerates the report figures, and the exported feature table is committed alongside a generated data dictionary giving the
