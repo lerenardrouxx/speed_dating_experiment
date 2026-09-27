@@ -40,43 +40,43 @@ jupyter: python3
 # Introduction and problem framing {#sec-intro}
 
 
-"Reciprocal recommenders must satisfy the preferences and needs of the two parties involved in
+Reciprocal recommenders must satisfy the preferences and needs of the two parties involved in
 the recommendation. In contrast, the traditional items-to-people recommenders are one sided and
 must satisfy only the preference of the person for whom the recommendation is generated"
-[@palomares2021reciprocal]. Speed dating is such a domain: participants meet a series of
+[@palomares2021reciprocal]. Speed dating is such a domain, participants meet a series of
 opposite-sex partners briefly and privately decide afterward whether they would like to meet
-again, but a pairing succeeds only if *both* say yes. The label predicted here, `match`, is
-therefore symmetric by construction (@sec-data) — a good ranking for A must reflect what B would
+again, but a pairing succeeds only if both say yes. The label predicted here, `match`, is
+therefore symmetric by construction (@sec-data). A good ranking for A must reflect what B would
 think of A, not just what A wants.
 
-The recommendation must also be made *before* the encounter, since nothing revealed during the
+The recommendation must also be made before the encounter, since nothing revealed during the
 date exists yet when the pairing is chosen. Every feature is therefore restricted to what is
 knowable at signup (@sec-features), even though the strongest predictors of the decision are
-in-date impressions (@fig-leakage) — exactly why the pre-date task is hard. This also makes
-every fold a **cold start**: each of the 551 participants attends exactly one of the 21 waves
+in-date impressions (@fig-leakage) which is exactly why the pre-date task is hard. This also makes
+every fold a cold start. Each of the 551 participants attends exactly one of the 21 waves
 (@sec-data), so holding out a wave removes those participants from training entirely, ruling out
 reputation-style features and forcing every method, baseline included, to generalize from stated
 profiles alone.
 
 We ask whether a personalized model combining both sides' profiles can rank reciprocal
 candidates better than one that only knows how desirable each candidate is in general. Three
-methods — a popularity baseline, a clustering-based compatibility method, and a factorization
-machine — are compared under one leave-one-wave-out protocol (@sec-protocol), testing whether
-each beats chance and whether personalization beats the baseline (@sec-results); success means
+methods, a popularity baseline, a clustering-based compatibility method, and a factorization
+machine are compared under one leave-one-wave-out protocol (@sec-protocol), testing whether
+each beats chance and whether personalization beats the baseline (@sec-results). Success means
 recovering more of a participant's true mutual matches in a top-3 list than popularity alone
 can.
 
 # Data understanding {#sec-data}
 
 
-*EDA §n and FE §n refer to sections of notebooks 01 and 02; see `README.md` for reproducibility details.*
+*EDA §n and FE §n refer to sections of notebooks 01 and 02, see `README.md` for reproducibility details.*
 
 ## Dataset and evaluation implications
 
 The Columbia speed-dating experiment of @fisman2006gender contains 551 participants across 21
 waves (2002-2004), with 8,378 rows and 195 columns. Each participant met every opposite-sex
 participant in their wave for a four-minute date and recorded a yes/no decision (EDA §2-§4).
-A row is a **directed encounter**: `iid` deciding about `pid`. After dropping ten rows without a
+A row is a directed encounter, `iid` deciding about `pid`. After dropping ten rows without a
 partner identifier, all 8,368 encounters have a verified reverse-direction row, and `match`
 equals the conjunction of the two decisions (FE §4). We use directional `dec` for training and
 mutual `match` as ranking relevance. Acceptance occurs in 42.0% of encounters, but only 16.5%
@@ -88,10 +88,10 @@ and the median is only two matches per participant; these constraints limit atta
 scores (EDA §6, §10). Match rates also vary from 8.3% to 31.0% across waves, so we report variation
 across folds rather than only a pooled result (@sec-protocol).
 
-Each participant appears in exactly one wave. **Leaving out a wave therefore creates complete
-cold start for both sides of every test pair**: none of the held-out participants has training
-history (EDA §15; FE §11). Historical acceptance and desirability cannot rank unseen people;
-features and the baseline must instead rely on signup profiles (@sec-baseline).
+Each participant appears in exactly one wave. Leaving out a wave therefore creates complete
+cold start for both sides of every test pair. None of the held-out participants has training
+history (EDA §15; FE §11). Historical acceptance and desirability cannot rank unseen people.
+Features and the baseline must instead rely on signup profiles (@sec-baseline).
 
 The data also motivate modelling and fairness choices. Men accept 47.4% of dates and women 36.5%,
 supporting inclusion of the decider's gender. The most desirable 10% of participants receive
@@ -118,7 +118,7 @@ affects 101 of 541 participants with preference data and four evaluation folds (
 
 ### Available at recommendation time
 
-Only information known **before the date** is admissible: signup profiles, interests, stated
+Only information known before the date is admissible: signup profiles, interests, stated
 preferences, self-ratings and pairwise comparisons. We exclude in-date ratings (including
 `like` and `prob`), partner-side ratings, the reverse decision `dec_o`, and follow-up surveys.
 The wave-constant experimental condition `condtn` is also excluded because it cannot distinguish
@@ -149,7 +149,7 @@ partner's own responses (FE §4, §6). @tbl-features summarises the feature bloc
 
 : Feature blocks; definitions and sources are in the exported data dictionary (FE §5-§9). {#tbl-features}
 
-Compatibility uses the partner's **signup self-ratings**, avoiding in-date assessments.
+Compatibility uses the partner's signup self-ratings, avoiding in-date assessments.
 `compat_a2b` weights B's attributes by A's stated preferences; `compat_b2a` reverses the direction.
 Their harmonic mean provides a symmetric score that is low when either direction is weak
 (FE §9). These features encode mutual suitability, but their usefulness must be established
@@ -165,7 +165,7 @@ how literally signup preferences should be interpreted.
 ### Leakage-safe preprocessing
 
 The exported features remain unscaled. Clipping and range-based scaling use fixed bounds from
-the data dictionary; **learned transformations**, including median imputation and standardisation,
+the data dictionary learned transformations, including median imputation and standardisation,
 are fitted only on training waves and applied to the held-out wave. One-hot encoding uses fixed,
 documented category lists to keep the feature dimensions consistent across folds (FE §12).
 
